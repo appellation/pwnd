@@ -1,0 +1,26 @@
+name: pwd
+about: CLI password manager
+subcommands:
+  - list:
+      about: List passwords
+  - add:
+      about: Add a password
+      args:
+        - name:
+            short: 'n'
+            help: The name of the thing
+            required: true
+            takes_value: true
+        - value:
+            short: 'v'
+            help: The value of the thing
+            required: true
+            takes_value: true
+  - get:
+      about: Get a password
+      args:
+        - name:
+            short: 'n'
+            help: The name of the thing
+            required: true
+            takes_value: true

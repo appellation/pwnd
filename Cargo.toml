@@ -1,0 +1,20 @@
+[package]
+name = "pwd-core"
+version = "0.1.0"
+authors = ["Will Nelson <will@pleb.xyz>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+aes = "0.3.2"
+arrayref = "0.3.6"
+clap = { version = "2.33.0", features = ["yaml"] }
+js-sys = "0.3.35"
+prettytable-rs = "^0.8"
+rand = "0.7.3"
+sqlite = "0.25.0"
+typenum = "1.11.2"
+wasm-bindgen = "0.2.58"
+web-sys = "0.3.35"
+x25519-dalek = "0.6"

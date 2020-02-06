@@ -1,0 +1,5 @@
+CREATE TABLE IF NOT EXISTS secrets (
+	id INTEGER PRIMARY KEY,
+	'name' VARCHAR(100) UNIQUE,
+	'value' BLOB
+);
