@@ -3,21 +3,33 @@ extern crate rand;
 extern crate typenum;
 extern crate x25519_dalek;
 
-use aes::{Aes256, block_cipher_trait::{BlockCipher, generic_array::GenericArray}};
+use aes::{Aes256, block_cipher_trait::{BlockCipher, generic_array::{GenericArray, typenum::U16}}};
 use rand::rngs::OsRng;
-use typenum::consts::U16;
 pub use x25519_dalek::{PublicKey, SharedSecret, StaticSecret};
 
 pub mod local;
-pub mod encrypt;
 
 pub trait KeyPair {
 	fn generate() -> Self;
 	fn private_key(&self) -> Vec<u8>;
 	fn public_key(&self) -> PublicKey;
 	fn shared_secret(&self, other: &PublicKey) -> SharedSecret;
-	fn encrypt_local(&self, data: &[u8]) -> Vec<u8>;
-	fn decrypt_local(&self, data: &[u8]) -> Vec<u8>;
+	fn encrypt_local(&self, data: &mut Vec<u8>);
+	fn decrypt_local(&self, data: &mut Vec<u8>);
+}
+
+fn crypt(secret: &StaticSecret, data: &mut Vec<u8>, f: impl Fn(&Aes256, &mut GenericArray<u8, U16>)) {
+	let pk = &secret.to_bytes();
+	let key = GenericArray::from_slice(pk);
+	let cipher = Aes256::new(&key);
+
+	let new_len = (data.len() + 15) / 16 * 16;
+	data.resize(new_len, 0);
+
+	let mut chunks = data.chunks_exact_mut(16);
+	for chunk in &mut chunks {
+		f(&cipher, GenericArray::from_mut_slice(chunk));
+	}
 }
 
 impl KeyPair for StaticSecret {
@@ -37,31 +49,12 @@ impl KeyPair for StaticSecret {
 		self.diffie_hellman(other)
 	}
 
-	fn encrypt_local(&self, data: &[u8]) -> Vec<u8> {
-		let pk = &self.to_bytes();
-		let key = GenericArray::from_slice(pk);
-		let cipher = Aes256::new(&key);
-
-		let mut chunks = encrypt::AesChunks::from(data);
-		for mut chunk in &mut chunks {
-			cipher.encrypt_block(&mut chunk);
-		}
-
-		println!("{:?}", chunks);
-		chunks.flatten().collect()
+	fn encrypt_local(&self, data: &mut Vec<u8>) {
+		crypt(self, data, Aes256::encrypt_block);
 	}
 
-	fn decrypt_local(&self, data: &[u8]) -> Vec<u8> {
-		let pk = &self.to_bytes();
-		let key = GenericArray::from_slice(pk);
-		let cipher = Aes256::new(&key);
-
-		let mut chunks = encrypt::AesChunks::from(data);
-		for mut chunk in &mut chunks {
-			cipher.decrypt_block(&mut chunk);
-		}
-
-		chunks.flatten().collect()
+	fn decrypt_local(&self, data: &mut Vec<u8>) {
+		crypt(self, data, Aes256::decrypt_block);
 	}
 }
 

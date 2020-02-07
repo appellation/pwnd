@@ -46,8 +46,11 @@ impl<T: KeyPair> SecretStore for SqliteStore<T> {
 		match &secret.value {
 			None => Err("Value is required".to_string()),
 			Some(value) => {
+				let mut cloned = value.to_vec();
+				self.key_pair.encrypt_local(&mut cloned);
+
 				statement.bind(1, secret.name.as_str()).unwrap();
-				statement.bind(2, self.key_pair.encrypt_local(value.as_slice()).as_slice()).unwrap();
+				statement.bind(2, cloned.as_slice()).unwrap();
 
 				match statement.next() {
 					Err(err) => Err(err.to_string()),
@@ -66,11 +69,16 @@ impl<T: KeyPair> SecretStore for SqliteStore<T> {
 
 		match statement.next() {
 			Err(err) => Err(err.to_string()),
-			Ok(_) => Ok(Secret{
-				id: statement.read(0).unwrap(),
-				name: statement.read(1).unwrap(),
-				value: Some(self.key_pair.decrypt_local(&statement.read::<Vec<u8>>(2).unwrap())),
-			}),
+			Ok(_) => {
+				let mut value = statement.read::<Vec<u8>>(2).unwrap();
+				self.key_pair.decrypt_local(&mut value);
+
+				Ok(Secret{
+					id: statement.read(0).unwrap(),
+					name: statement.read(1).unwrap(),
+					value: Some(value),
+				})
+			},
 		}
 	}
 }
