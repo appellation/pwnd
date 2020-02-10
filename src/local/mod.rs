@@ -151,9 +151,6 @@ mod test {
 		assert!(saved.is_ok());
 
 		let saved_secret = saved.unwrap();
-		println!("{:?}", secret);
-		println!("{:?}", saved_secret);
-		println!("----------------------");
 		assert!(saved_secret.is_some());
 		assert!(secret == saved_secret.unwrap());
 		TestResult::passed()

@@ -61,7 +61,6 @@ impl KeyPair for StaticSecret {
 	fn decrypt_local(&self, data: &mut Vec<u8>) {
 		crypt(self, data, Aes256::decrypt_block);
 		let mut i = data.len();
-		// for _ in data.iter().rev().take_while(|&x| *x == 0) {}
 		while i > 0 && data[i-1] == 0 {
 			i -= 1;
 		}
