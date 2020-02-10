@@ -51,7 +51,10 @@ fn main() {
 		("get", Some(args)) => {
 			let name = args.value_of("name").expect("Name is required!");
 			let secret = secret_store.get(name).unwrap();
-			println!("{}", String::from_utf8_lossy(&secret.value.unwrap().to_vec()));
+			match secret {
+				Some(s) => println!("{}", String::from_utf8_lossy(&s.value.unwrap().to_vec())),
+				None => println!("Nothing found that matches {}", name),
+			};
 		},
 		_ => (),
 	}

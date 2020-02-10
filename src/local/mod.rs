@@ -1,6 +1,6 @@
 extern crate sqlite;
 
-use sqlite::{Connection, State};
+use sqlite::{Connection, Value};
 use super::{KeyPair, Secret, SecretStore};
 
 pub struct SqliteStore<T: KeyPair> {
@@ -15,7 +15,7 @@ impl<T: KeyPair> SqliteStore<T> {
 		conn.execute(String::from_utf8_lossy(init)).unwrap();
 
 		SqliteStore{
-			connection: sqlite::open(file).unwrap(),
+			connection: conn,
 			key_pair,
 		}
 	}
@@ -23,14 +23,18 @@ impl<T: KeyPair> SqliteStore<T> {
 
 impl<T: KeyPair> SecretStore for SqliteStore<T> {
 	fn list<'a>(&self) -> Result<Vec<Secret>, String> {
-		let result = self.connection.prepare("SELECT id, name FROM secrets");
-		let mut statement = result.map_err(|err| err.to_string())?;
+		let mut statement = self.connection
+			.prepare("SELECT id, name FROM secrets")
+			.map_err(|err| err.to_string())?
+			.cursor();
 
-		let mut secrets = Vec::<Secret>::new();
-		while let State::Row = statement.next().unwrap() {
+		let mut secrets = Vec::<Secret>::with_capacity(statement.count());
+		while let Ok(Some(row)) = statement.next() {
 			secrets.push(Secret{
-				id: statement.read::<i64>(0).unwrap(),
-				name: statement.read::<String>(1).unwrap(),
+				id: row[0].as_integer().unwrap(),
+				name: String::from_utf8(row[1].as_binary().unwrap().to_vec())
+					.map_err(|err| err.to_string())?
+					.to_string(),
 				value: None,
 			});
 		}
@@ -39,20 +43,30 @@ impl<T: KeyPair> SecretStore for SqliteStore<T> {
 	}
 
 	fn add(&self, secret: &Secret) -> Result<(), String> {
-		let mut statement = self.connection
-			.prepare("INSERT OR REPLACE INTO secrets (name, value) VALUES (?, ?)")
-			.unwrap();
+		if secret.name.is_empty() {
+			return Err("Name cannot be empty".to_string());
+		}
 
 		match &secret.value {
 			None => Err("Value is required".to_string()),
 			Some(value) => {
+				let mut cursor = self.connection
+					.prepare("INSERT OR REPLACE INTO secrets (name, value) VALUES (?, ?)")
+					.map_err(|err| err.to_string())?
+					.cursor();
+
 				let mut cloned = value.to_vec();
-				self.key_pair.encrypt_local(&mut cloned);
+				let status = self.key_pair.encrypt_local(&mut cloned);
+				if let Err(status) = status {
+					return Err(status.to_string());
+				}
 
-				statement.bind(1, secret.name.as_str()).unwrap();
-				statement.bind(2, cloned.as_slice()).unwrap();
+				cursor.bind(&[
+					Value::Binary(secret.name.as_bytes().to_vec()),
+					Value::Binary(cloned),
+				]).unwrap();
 
-				match statement.next() {
+				match cursor.next() {
 					Err(err) => Err(err.to_string()),
 					Ok(_) => Ok(()),
 				}
@@ -60,25 +74,88 @@ impl<T: KeyPair> SecretStore for SqliteStore<T> {
 		}
 	}
 
-	fn get(&self, name: &str) -> Result<Secret, String> {
+	fn get(&self, name: &str) -> Result<Option<Secret>, String> {
 		let mut statement = self.connection
 			.prepare("SELECT id, name, value FROM secrets WHERE name = ?")
-			.unwrap();
+			.map_err(|err| err.to_string())?
+			.cursor();
 
-		statement.bind(1, name).unwrap();
+		statement.bind(&[
+			Value::Binary(name.as_bytes().to_vec()),
+		]).unwrap();
 
 		match statement.next() {
 			Err(err) => Err(err.to_string()),
-			Ok(_) => {
-				let mut value = statement.read::<Vec<u8>>(2).unwrap();
+			Ok(Some(row)) => {
+				let mut value = row[2].as_binary().unwrap().to_vec();
 				self.key_pair.decrypt_local(&mut value);
 
-				Ok(Secret{
-					id: statement.read(0).unwrap(),
-					name: statement.read(1).unwrap(),
+				Ok(Some(Secret{
+					id: row[0].as_integer().unwrap(),
+					name: String::from_utf8(row[1].as_binary().unwrap().to_vec())
+						.map_err(|err| err.to_string())?
+						.to_string(),
 					value: Some(value),
-				})
+				}))
 			},
+			Ok(None) => Ok(None),
 		}
+	}
+}
+
+#[cfg(test)]
+mod test {
+	use quickcheck::TestResult;
+	use quickcheck_macros::quickcheck;
+	use super::{SqliteStore};
+	use crate::{KeyPair, Secret, SecretStore, StaticSecret};
+
+	const NAME: &'static str = ":memory:";
+
+	#[test]
+	fn connects() {
+		let key_pair = StaticSecret::generate();
+		SqliteStore::new(NAME, key_pair);
+	}
+
+	#[test]
+	fn lists() {
+		let key_pair = StaticSecret::generate();
+		let store = SqliteStore::new(NAME, key_pair);
+
+		let res = store.list();
+		assert!(res.is_ok());
+
+		let list = res.unwrap();
+		assert_eq!(list.len(), 0);
+	}
+
+	#[quickcheck]
+	fn adds(name: String, value: Option<Vec<u8>>) -> TestResult {
+		let key_pair = StaticSecret::generate();
+		let store = SqliteStore::new(NAME, key_pair);
+		let is_invalid_value = value.as_ref().map_or(true, |v| v.ends_with(&[0]));
+		let secret = Secret{
+			id: 1, // SQLite sets the first ID to 1 automatically, otherwise this doesn't matter
+			name: name.clone(),
+			value,
+		};
+
+		let res = store.add(&secret);
+		if is_invalid_value || name.is_empty() {
+			return TestResult::from_bool(res.is_err());
+		}
+		assert!(res.is_ok());
+
+		let saved = store.get(&name);
+		assert!(saved.is_ok());
+
+		let saved_secret = saved.unwrap();
+		println!("{:?}", secret);
+		println!("{:?}", saved_secret);
+		println!("----------------------");
+		assert!(saved_secret.is_some());
+		assert!(secret == saved_secret.unwrap());
+		TestResult::passed()
 	}
 }
