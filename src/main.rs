@@ -5,8 +5,10 @@ extern crate clap;
 extern crate arrayref;
 
 use clap::App;
+use pwd_core::{local::SqliteStore, secret::{KeyPair, Secret, SecretStore, StaticSecret}};
 use std::fs;
-use pwd_core::{KeyPair, Secret, SecretStore, local::SqliteStore, StaticSecret};
+
+mod cmd;
 
 fn main() {
 	let yml = load_yaml!("cli.yml");
@@ -56,6 +58,7 @@ fn main() {
 				None => println!("Nothing found that matches {}", name),
 			};
 		},
+		("generate", Some(args)) => cmd::generate(args),
 		_ => (),
 	}
 }

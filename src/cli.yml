@@ -3,8 +3,10 @@ about: CLI password manager
 subcommands:
   - list:
       about: List passwords
+      short: l
   - add:
       about: Add a password
+      short: a
       args:
         - name:
             short: 'n'
@@ -18,9 +20,21 @@ subcommands:
             takes_value: true
   - get:
       about: Get a password
+      short: g
       args:
         - name:
             short: 'n'
             help: The name of the thing
             required: true
+            takes_value: true
+  - generate:
+      about: Generate a new password
+      short: gen
+      args:
+        - range:
+            help: A range of valid characters
+            multiple: true
+        - name:
+            short: 'n'
+            help: The name of the thing
             takes_value: true
