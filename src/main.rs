@@ -5,10 +5,8 @@ extern crate clap;
 extern crate arrayref;
 
 use clap::App;
-use pwd_core::{local::SqliteStore, secret::{KeyPair, Secret, SecretStore, StaticSecret}};
+use pwd_core::{local::SqliteStore, secret::{KeyPair, Secret, SecretStore, StaticSecret}, util};
 use std::fs;
-
-mod cmd;
 
 fn main() {
 	let yml = load_yaml!("cli.yml");
@@ -58,7 +56,27 @@ fn main() {
 				None => println!("Nothing found that matches {}", name),
 			};
 		},
-		("generate", Some(args)) => cmd::generate(args),
-		_ => (),
+		("generate", Some(args)) => {
+			let len: usize = match args.value_of("length") {
+				Some(val) => match val.parse() {
+					Ok(v) => v,
+					Err(_) => panic!("Non-number provided for length!"),
+				},
+				None => 24,
+			};
+
+			let pwd = util::random_string(len);
+
+			if let Some(name) = args.value_of("name") {
+				secret_store.add(&Secret{
+					id: 0,
+					name: name.to_string(),
+					value: Some(pwd.as_bytes().to_vec()),
+				}).expect("Failed to save password");
+			}
+
+			println!("{}", pwd);
+		},
+		_ => panic!("Unknown command!"),
 	}
 }
