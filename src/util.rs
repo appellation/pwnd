@@ -17,11 +17,10 @@ pub fn random_string(len: usize) -> String {
 }
 
 pub fn random_char<T: Rng>(rng: &mut T) -> char {
-	let mut num = rng.gen_range(0, MAX_RANGE);
+	let mut num = rng.gen_range(0, MAX_RANGE) + CONTROL_LENGTH;
 	if num > BOTTOM_GAP {
 		num += GAP_SIZE;
 	}
-	num += CONTROL_LENGTH;
 
 	char::from_u32(num).unwrap()
 }
