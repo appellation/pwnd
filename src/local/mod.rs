@@ -3,26 +3,28 @@ extern crate sqlite;
 use sqlite::{Connection, Value};
 use crate::secret::{KeyPair, Secret, SecretStore};
 
-pub struct SqliteStore<T: KeyPair> {
+pub mod sync;
+
+pub struct SqliteStore<'a, T: KeyPair> {
 	connection: Connection,
-	key_pair: T,
+	key_pair: &'a T,
 }
 
-impl<T: KeyPair> SqliteStore<T> {
-	pub fn new(file: &str, key_pair: T) -> Self {
+impl<'a, T: KeyPair> SqliteStore<'a, T> {
+	pub fn new(file: &str, key_pair: &'a T) -> Self {
 		let init = include_bytes!("schema.sql");
 		let conn = sqlite::open(file).unwrap();
 		conn.execute(String::from_utf8_lossy(init)).unwrap();
 
-		SqliteStore{
+		SqliteStore::<'a, T>{
 			connection: conn,
 			key_pair,
 		}
 	}
 }
 
-impl<T: KeyPair> SecretStore for SqliteStore<T> {
-	fn list<'a>(&self) -> Result<Vec<Secret>, String> {
+impl<'a, T: KeyPair> SecretStore for SqliteStore<'a, T> {
+	fn list(&self) -> Result<Vec<Secret>, String> {
 		let mut statement = self.connection
 			.prepare("SELECT id, name FROM secrets")
 			.map_err(|err| err.to_string())?
@@ -115,13 +117,13 @@ mod test {
 	#[test]
 	fn connects() {
 		let key_pair = StaticSecret::generate();
-		SqliteStore::new(NAME, key_pair);
+		SqliteStore::new(NAME, &key_pair);
 	}
 
 	#[test]
 	fn lists() {
 		let key_pair = StaticSecret::generate();
-		let store = SqliteStore::new(NAME, key_pair);
+		let store = SqliteStore::new(NAME, &key_pair);
 
 		let res = store.list();
 		assert!(res.is_ok());
@@ -133,7 +135,7 @@ mod test {
 	#[quickcheck]
 	fn adds(name: String, value: Option<Vec<u8>>) -> TestResult {
 		let key_pair = StaticSecret::generate();
-		let store = SqliteStore::new(NAME, key_pair);
+		let store = SqliteStore::new(NAME, &key_pair);
 		let is_invalid_value = value.as_ref().map_or(true, |v| v.ends_with(&[0]));
 		let secret = Secret{
 			id: 1, // SQLite sets the first ID to 1 automatically, otherwise this doesn't matter

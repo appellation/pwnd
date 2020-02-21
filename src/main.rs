@@ -5,7 +5,7 @@ extern crate clap;
 extern crate arrayref;
 
 use clap::App;
-use pwd_core::{local::SqliteStore, secret::{KeyPair, Secret, SecretStore, StaticSecret}, util};
+use pwd_core::{local::{SqliteStore, sync::LocalClient}, sync::Client, secret::{KeyPair, Secret, SecretStore, StaticSecret}, util};
 use std::fs;
 
 fn main() {
@@ -28,7 +28,8 @@ fn main() {
 		}
 	};
 
-	let secret_store = SqliteStore::new("pwd.sqlite3", kp);
+	let secret_store = SqliteStore::new("pwd.sqlite3", &kp);
+	let client = LocalClient{};
 
 	match matches.subcommand() {
 		("list", Some(_)) => {
@@ -76,6 +77,14 @@ fn main() {
 			}
 
 			println!("{}", pwd);
+		},
+		("sync", Some(_)) => {
+			let qr = client.qr_code(&kp).expect("Failed to generate QR code");
+			let image = qr.render::<char>()
+				.module_dimensions(2, 1)
+				.build();
+
+			println!("{}", image);
 		},
 		_ => panic!("Unknown command!"),
 	}

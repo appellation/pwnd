@@ -9,7 +9,7 @@ pub use x25519_dalek::{PublicKey, SharedSecret, StaticSecret};
 
 pub trait KeyPair {
 	fn generate() -> Self;
-	fn private_key(&self) -> Vec<u8>;
+	fn private_key(&self) -> [u8; 32];
 	fn public_key(&self) -> PublicKey;
 	fn shared_secret(&self, other: &PublicKey) -> SharedSecret;
 	fn encrypt_local(&self, data: &mut Vec<u8>) -> Result<(), &str>;
@@ -35,8 +35,8 @@ impl KeyPair for StaticSecret {
 		Self::new(&mut OsRng{})
 	}
 
-	fn private_key(&self) -> Vec<u8> {
-		self.to_bytes().to_vec()
+	fn private_key(&self) -> [u8; 32] {
+		self.to_bytes()
 	}
 
 	fn public_key(&self) -> PublicKey {

@@ -12,7 +12,9 @@ arrayref = "0.3.6"
 clap = { version = "2.33.0", features = ["yaml"] }
 js-sys = "0.3.35"
 prettytable-rs = "^0.8"
+qrcode = { version = "0.11", default-features = false }
 rand = "0.7.3"
+reqwest = { version = "0.10", features = ["blocking", "json"] }
 sqlite = "0.25.0"
 typenum = "1.11.2"
 wasm-bindgen = "0.2.58"
