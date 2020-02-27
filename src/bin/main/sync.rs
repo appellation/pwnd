@@ -1,6 +1,7 @@
 extern crate reqwest;
+extern crate pwnd;
 
-use crate::sync::Client;
+use pwnd::sync::Client;
 use std::collections::HashMap;
 use std::net::IpAddr;
 use std::str::FromStr;

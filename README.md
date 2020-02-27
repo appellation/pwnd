@@ -1,8 +1,8 @@
-# pw_d
+# pwnd
 
 A P2P secret manager.
 
-- [ ] CLI application (in progress)
+- [x] CLI application
 - [ ] Browser plugin
 - [ ] Desktop application
 
@@ -19,9 +19,8 @@ Private key is used for at-rest and network encryption.
 
 ## Synchronization
 
-Secrets are exchanged between clients using WebRTC. As for synchronizing them, still not sure:
-maybe RAFT?
-
+Secrets are exchanged between clients using WebRTC. Connections will be one-time and last as long
+as possible. No effort will be made to persist connections forever.
 
 Client B decrypts a secret from Client A using Client A's public key. Public keys are exchanged
 using physical proof such as QR code or physical device.

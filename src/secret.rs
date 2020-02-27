@@ -1,9 +1,14 @@
 extern crate aes;
 extern crate rand;
-extern crate typenum;
 extern crate x25519_dalek;
 
-use aes::{Aes256, block_cipher_trait::{BlockCipher, generic_array::{GenericArray, typenum::U16}}};
+use aes::{
+	Aes256,
+	block_cipher_trait::{
+		BlockCipher,
+		generic_array::{GenericArray, typenum::U16},
+	},
+};
 use rand::rngs::OsRng;
 pub use x25519_dalek::{PublicKey, SharedSecret, StaticSecret};
 

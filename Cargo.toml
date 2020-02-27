@@ -1,25 +1,35 @@
 [package]
-name = "pwd-core"
+name = "pwnd"
 version = "0.1.0"
 authors = ["Will Nelson <will@pleb.xyz>"]
 edition = "2018"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[lib]
+name = "pwnd"
+path = "src/lib.rs"
+crate-type = ["lib", "cdylib"]
+
+[[bin]]
+name = "pwnd"
+path = "src/bin/main/main.rs"
+
 [dependencies]
 aes = "0.3.2"
 arrayref = "0.3.6"
-clap = { version = "2.33.0", features = ["yaml"] }
 js-sys = "0.3.35"
-prettytable-rs = "^0.8"
 qrcode = { version = "0.11", default-features = false }
 rand = "0.7.3"
-reqwest = { version = "0.10", features = ["blocking", "json"] }
-sqlite = "0.25.0"
-typenum = "1.11.2"
 wasm-bindgen = "0.2.58"
 web-sys = "0.3.35"
 x25519-dalek = "0.6"
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+clap = { version = "2.33.0", features = ["yaml"] }
+prettytable-rs = "^0.8"
+reqwest = { version = "0.10", features = ["blocking", "json"] }
+sqlite = "0.25.0"
 
 [dev-dependencies]
 quickcheck = "0.9"

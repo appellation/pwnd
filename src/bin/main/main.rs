@@ -4,8 +4,17 @@ extern crate clap;
 #[macro_use]
 extern crate arrayref;
 
+mod local;
+mod sync;
+
 use clap::App;
-use pwd_core::{local::{SqliteStore, sync::LocalClient}, sync::Client, secret::{KeyPair, Secret, SecretStore, StaticSecret}, util};
+use local::{SqliteStore};
+use sync::LocalClient;
+use pwnd::{
+	secret::{KeyPair, Secret, SecretStore, StaticSecret},
+	util,
+	sync::Client
+};
 use std::fs;
 
 fn main() {
