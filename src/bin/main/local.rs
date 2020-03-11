@@ -1,8 +1,8 @@
 extern crate sqlite;
-extern crate pwnd;
+extern crate pwnd_core;
 
 use sqlite::{Connection, Value};
-use pwnd::secret::{KeyPair, Secret, SecretStore};
+use pwnd_core::secret::{KeyPair, Secret, SecretStore};
 
 pub struct SqliteStore<'a, T: KeyPair> {
 	connection: Connection,
@@ -109,7 +109,7 @@ mod test {
 	use quickcheck::TestResult;
 	use quickcheck_macros::quickcheck;
 	use super::{SqliteStore};
-	use pwnd::secret::{KeyPair, Secret, SecretStore, StaticSecret};
+	use pwnd_core::secret::{KeyPair, Secret, SecretStore, StaticSecret};
 
 	const NAME: &'static str = ":memory:";
 

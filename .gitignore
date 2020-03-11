@@ -2,3 +2,4 @@
 Cargo.lock
 *.pk
 *.sqlite3
+www/node_modules

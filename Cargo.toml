@@ -7,7 +7,7 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [lib]
-name = "pwnd"
+name = "pwnd_core"
 path = "src/lib.rs"
 crate-type = ["lib", "cdylib"]
 
@@ -17,12 +17,10 @@ path = "src/bin/main/main.rs"
 
 [dependencies]
 aes = "0.3.2"
-getrandom = "0.1.14"
-js-sys = "0.3.35"
+getrandom = { version = "0.1.14", features = ["wasm-bindgen"] }
 qrcode = { version = "0.11", default-features = false }
 rand = "0.7.3"
-wasm-bindgen = "0.2.58"
-web-sys = "0.3.35"
+wasm-bindgen = "0.2.59"
 x25519-dalek = "0.6"
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
