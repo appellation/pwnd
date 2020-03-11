@@ -8,7 +8,7 @@
     "serve": "webpack-dev-server"
   },
   "author": "Will Nelson <will@wnelson.xyz>",
-  "license": "ISC",
+  "license": "MPL-2.0",
   "dependencies": {
     "pwnd": "file:../pkg"
   },
