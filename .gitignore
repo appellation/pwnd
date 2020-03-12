@@ -1,5 +1,6 @@
-/target
+target/
+dist/
 Cargo.lock
 *.pk
 *.sqlite3
-www/node_modules
+node_modules/
