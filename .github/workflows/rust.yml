@@ -7,15 +7,31 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
+    - name: Install latest stable
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: stable
+        default: true
     - name: Build
-      run: cargo build --workspace --exclude pwnd_browser --verbose
-    - name: Run tests
-      run: cargo test --verbose
+      uses: actions-rs/cargo@v1
+      with:
+        command: build
+        args: --release --workspace --exclude pwnd_browser
+    - name: Test
+      uses: actions-rs/cargo@v1
+      with:
+        command: test
   wasm:
     runs-on: [ubuntu-latest]
     steps:
       - uses: actions/checkout@v2
-      - name: Install wasm-pack
-        run: cargo install wasm-pack
+      - name: Install latest stable
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          default: true
       - name: Build
-        run: cargo build --package pwnd_browser --target wasm32-unknown-unknown --verbose
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: --release --package pwnd_browser

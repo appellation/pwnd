@@ -10,7 +10,7 @@ mod sync;
 use clap::App;
 use local::{SqliteStore};
 use sync::LocalClient;
-use pwnd_core::{
+use pwnd::{
 	secret::{KeyPair, Secret, SecretStore, StaticSecret},
 	util,
 	sync::Client
