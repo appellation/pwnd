@@ -10,10 +10,10 @@ jobs:
         os: [ubuntu-latest, windows-latest, macos-latest]
     steps:
     - uses: actions/checkout@v2
-    - name: Install latest stable
+    - name: Install latest nightly
       uses: actions-rs/toolchain@v1
       with:
-        toolchain: stable
+        toolchain: nightly
         default: true
     - name: Build
       uses: actions-rs/cargo@v1
@@ -45,12 +45,13 @@ jobs:
           node-version: '12.x'
       - name: Ensure wasm32 target
         run: rustup target add wasm32-unknown-unknown
-      - run: cd browser
-      - run: npm ci
-      - name: Build
-        run: npm run prepare
+      - name: Install & build
+        run: |
+          cd browser
+          npm ci
+          npm run prepare
       - name: Upload web artifacts
         uses: actions/upload-artifact@v1
         with:
           name: pwnd_browser
-          path: dist
+          path: browser/dist
