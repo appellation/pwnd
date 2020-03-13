@@ -1,4 +1,4 @@
-name: Rust
+name: rust
 
 on: [push]
 
@@ -19,12 +19,17 @@ jobs:
       uses: actions-rs/cargo@v1
       with:
         command: build
-        args: --release --workspace --exclude pwnd_browser
+        args: --release -Z unstable-options --out-dir build --workspace --exclude pwnd_browser
     - name: Test
       uses: actions-rs/cargo@v1
       with:
         command: test
         args: --workspace --exclude pwnd_browser
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v1
+      with:
+        name: pwnd
+        path: build
   wasm:
     runs-on: ubuntu-latest
     steps:
@@ -34,10 +39,18 @@ jobs:
         with:
           toolchain: stable
           default: true
+      - name: Install Node
+        uses: actions/setup-node@v1
+        with:
+          node-version: '12.x'
       - name: Ensure wasm32 target
         run: rustup target add wasm32-unknown-unknown
+      - run: cd browser
+      - run: npm ci
       - name: Build
-        uses: actions-rs/cargo@v1
+        run: npm run prepare
+      - name: Upload web artifacts
+        uses: actions/upload-artifact@v1
         with:
-          command: build
-          args: --release --package pwnd_browser --target wasm32-unknown-unknown
+          name: pwnd_browser
+          path: dist
