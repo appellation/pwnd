@@ -24,7 +24,7 @@ jobs:
       uses: actions-rs/cargo@v1
       with:
         command: test
-        args: --workspace --exclude pwnd_browser
+        args: --release --workspace --exclude pwnd_browser
     - name: Upload artifacts
       uses: actions/upload-artifact@v1
       with:
