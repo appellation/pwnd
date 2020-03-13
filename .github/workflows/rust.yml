@@ -4,7 +4,7 @@ on: [push]
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: [ubuntu-latest, windows-latest, macos-latest]
     steps:
     - uses: actions/checkout@v2
     - name: Install latest stable
@@ -21,8 +21,9 @@ jobs:
       uses: actions-rs/cargo@v1
       with:
         command: test
+        args: --exclude pwnd_browser
   wasm:
-    runs-on: [ubuntu-latest]
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
       - name: Install latest stable
@@ -34,4 +35,4 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: build
-          args: --release --package pwnd_browser
+          args: --release --package pwnd_browser --target wasm32-unknown-unknown

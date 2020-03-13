@@ -12,3 +12,7 @@ clap = { version = "2.33.0", features = ["yaml"] }
 pwnd = { path = "../core" }
 reqwest = { version = "0.10", features = ["blocking", "json"] }
 sqlite = "0.25.0"
+
+[dev-dependencies]
+quickcheck = "0.9"
+quickcheck_macros = "0.9"
