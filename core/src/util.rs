@@ -1,35 +1,29 @@
 extern crate getrandom;
+extern crate rand;
 
-use std::convert::TryInto;
+use rand::{thread_rng, Rng};
 use std::char;
 
-const BOTTOM_GAP: u16 = 0xD7FF; // the bottom of the valid character range
-const GAP_SIZE: u16 = 0xE000 - BOTTOM_GAP; // the size of the gap between valid characters
-const CONTROL_LENGTH: u16 = 0x21; // the top of the ASCII control code range
+const BOTTOM_GAP: u32 = 0xD7FF; // the bottom of the valid character range
+const GAP_SIZE: u32 = 0xE000 - BOTTOM_GAP; // the size of the gap between valid characters
+const CONTROL_LENGTH: u32 = 0x21; // the top of the ASCII control code range
+const MAX_UTF8: u32 = 0x10000; // the maximum UTF-8 value to generate, exclusive
+const MAX_RANGE: u32 = MAX_UTF8 - GAP_SIZE - CONTROL_LENGTH;
 
 pub fn random_string(len: usize) -> String {
 	let mut pwd = String::with_capacity(len);
+	let mut rng = thread_rng();
 	for _ in 0..len {
-		pwd.push(random_char());
+		pwd.push(random_char(&mut rng));
 	}
 	pwd
 }
 
-pub fn random_char() -> char {
-	let mut bytes = [0u8; 2];
-	getrandom::getrandom(&mut bytes).expect("Unable to generate random values on this platform");
-
-	let mut num = u16::from_le_bytes(bytes);
-	if num < CONTROL_LENGTH {
-		num += CONTROL_LENGTH;
-	}
-
+pub fn random_char<T: Rng>(rng: &mut T) -> char {
+	let mut num = rng.gen_range(0, MAX_RANGE) + CONTROL_LENGTH;
 	if num > BOTTOM_GAP {
 		num += GAP_SIZE;
 	}
 
-	match char::from_u32(num.try_into().unwrap()) {
-		None => random_char(),
-		Some(c) => c,
-	}
+	char::from_u32(num).unwrap()
 }
