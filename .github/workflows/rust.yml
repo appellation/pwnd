@@ -28,7 +28,7 @@ jobs:
     - name: Upload artifacts
       uses: actions/upload-artifact@v1
       with:
-        name: pwnd
+        name: pwnd_${{ matrix.os }}
         path: build
   wasm:
     runs-on: ubuntu-latest
