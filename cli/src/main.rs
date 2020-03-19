@@ -19,7 +19,8 @@ use std::fs;
 
 fn main() {
 	let yml = load_yaml!("cli.yml");
-	let matches = App::from_yaml(yml).get_matches();
+	let mut app = App::from_yaml(yml);
+	let matches = app.clone().get_matches();
 
 	let kp = match fs::read("pwd.pk") {
 		Ok(bytes) => {
@@ -95,6 +96,9 @@ fn main() {
 
 			println!("{}", image);
 		},
-		_ => panic!("Unknown command!"),
+		_ => {
+			println!("Unknown command!\n");
+			app.print_long_help().expect("Unable to print help. :(");
+		},
 	}
 }
