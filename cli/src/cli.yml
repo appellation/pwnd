@@ -31,8 +31,14 @@ subcommands:
         - name:
             help: The name of the thing
             takes_value: true
+        - length:
+            short: l
+            long: length
+            help: The length of the thing
+            takes_value: true
         - range:
             short: 'r'
+            long: range
             help: A range of valid characters
             multiple: true
             takes_value: true

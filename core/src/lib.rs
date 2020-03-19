@@ -1,3 +1,3 @@
 pub mod secret;
-pub mod util;
+pub mod random;
 pub mod sync;

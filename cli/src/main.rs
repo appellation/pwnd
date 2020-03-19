@@ -12,7 +12,7 @@ use local::{SqliteStore};
 use sync::LocalClient;
 use pwnd::{
 	secret::{KeyPair, Secret, SecretStore, StaticSecret},
-	util,
+	random,
 	sync::Client
 };
 use std::fs;
@@ -76,7 +76,14 @@ fn main() {
 				None => 24,
 			};
 
-			let pwd = util::random_string(len);
+			let charset = match args.value_of("range") {
+				Some("alpha") => random::ALPHA.to_owned(),
+				Some("numeric") => random::NUMERIC.to_owned(),
+				Some("alphanumeric") => random::ALPHA.to_owned() + random::NUMERIC,
+				_ => random::ALPHA.to_owned() + random::NUMERIC + random::SPECIAL_CHARACTERS,
+			};
+
+			let pwd = random::random_string(len, &charset);
 
 			if let Some(name) = args.value_of("name") {
 				secret_store.add(&Secret{
