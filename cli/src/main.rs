@@ -80,7 +80,7 @@ fn main() {
 				Some("alpha") => random::ALPHA.to_owned(),
 				Some("numeric") => random::NUMERIC.to_owned(),
 				Some("alphanumeric") => random::ALPHA.to_owned() + random::NUMERIC,
-				_ => random::ALPHA.to_owned() + random::NUMERIC + random::SPECIAL_CHARACTERS,
+				_ => random::ALL.to_owned(),
 			};
 
 			let pwd = random::random_string(len, &charset);

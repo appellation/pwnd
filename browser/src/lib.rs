@@ -4,6 +4,7 @@ extern crate pwnd;
 extern crate wasm_bindgen;
 extern crate yew;
 
+use pwnd::random;
 use wasm_bindgen::prelude::*;
 use yew::events::*;
 use yew::prelude::*;
@@ -26,13 +27,13 @@ impl Component for Model {
 		Self {
 			link,
 			password_length: 32,
-			random_password: pwnd::util::random_string(32),
+			random_password: pwnd::random::random_string(32, random::ALL),
 		}
 	}
 
 	fn update(&mut self, msg: Self::Message) -> ShouldRender {
 		match msg {
-			Msg::RegeneratePassword => self.random_password = pwnd::util::random_string(self.password_length),
+			Msg::RegeneratePassword => self.random_password = random::random_string(self.password_length, random::ALL),
 			Msg::SetPasswordLength(value) => self.password_length = value,
 		}
 		true
