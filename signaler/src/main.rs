@@ -1,58 +1,48 @@
-extern crate dashmap;
-extern crate futures;
-extern crate serde;
-extern crate serde_json;
-extern crate tokio;
-extern crate warp;
-
 use dashmap::DashMap;
 use futures::StreamExt;
-use std::sync::Arc;
-use tokio::{
-	sync::{mpsc, RwLock},
-	time::{timeout, Duration},
+use std::sync::{
+	Arc,
+	atomic::{AtomicUsize, Ordering},
 };
+use tokio::sync::mpsc;
 use warp::{Filter, ws::{WebSocket, Ws}};
 
-async fn ws_handler(mut ws: WebSocket, user_id: String, users: Users) {
-	let hello = timeout(Duration::from_secs(10), ws.next()).await;
-	match hello {
-		Ok(Some(Ok(msg))) => {
-			if !users.contains_key(&user_id) {
-				let conns = RwLock::new(Vec::new());
-				users.insert(user_id.clone(), conns);
-			}
+static NEXT_CONN_ID: AtomicUsize = AtomicUsize::new(0);
 
-			let conns = users.get(&user_id).unwrap();
-			for conn in &*conns.read().await {
-				let _ = conn.send(Ok(msg.clone()));
-			}
+async fn ws_handler(ws: WebSocket, user_id: String, users: Users) {
+	if !users.contains_key(&user_id) {
+		let conns: UserConnections = DashMap::new();
+		users.insert(user_id.clone(), conns);
+	}
 
-			let (user_ws_tx, mut user_ws_rx) = ws.split();
+	let (user_ws_tx, mut user_ws_rx) = ws.split();
 
-			let (tx, rx) = mpsc::unbounded_channel();
-			tokio::task::spawn(rx.forward(user_ws_tx));
+	let (tx, rx) = mpsc::unbounded_channel();
+	tokio::task::spawn(rx.forward(user_ws_tx));
 
-			conns.write().await.push(tx.clone());
+	let conns = users.get(&user_id).unwrap();
+	let mut conn_id = NEXT_CONN_ID.fetch_add(1, Ordering::Relaxed);
+	while conns.contains_key(&conn_id) {
+		conn_id = NEXT_CONN_ID.fetch_add(1, Ordering::Relaxed);
+	}
 
-			while let Some(result) = user_ws_rx.next().await {
-				if tx.send(result).is_err() {
-					break;
-				}
-			}
-		},
-		_ => {
-			let _ = ws.close().await;
-		},
-	};
+	conns.insert(conn_id, tx.clone());
+
+	while let Some(result) = user_ws_rx.next().await {
+		if tx.send(result).is_err() {
+			break;
+		}
+	}
+
+	conns.remove(&conn_id);
 }
 
-type UserConnections = RwLock<Vec<mpsc::UnboundedSender<Result<warp::ws::Message, warp::Error>>>>;
+type UserConnections = DashMap<usize, mpsc::UnboundedSender<Result<warp::ws::Message, warp::Error>>>;
 type Users = Arc<DashMap<String, UserConnections>>;
 
 #[tokio::main]
 async fn main() {
-	let users = DashMap::<String, UserConnections>::new();
+	let users = DashMap::new();
 	let users: Users = Arc::new(users);
 	let users = warp::any().map(move || users.clone());
 
