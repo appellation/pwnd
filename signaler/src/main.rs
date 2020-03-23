@@ -26,7 +26,7 @@ async fn ws_handler(ws: WebSocket, user_id: String, users: Users) {
 		conn_id = NEXT_CONN_ID.fetch_add(1, Ordering::Relaxed);
 	}
 
-	conns.insert(conn_id, tx.clone());
+	conns.insert(conn_id, tx);
 
 	while let Some(result) = user_ws_rx.next().await {
 		let msg = match result {
