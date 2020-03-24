@@ -19,12 +19,12 @@ jobs:
       uses: actions-rs/cargo@v1
       with:
         command: build
-        args: --release -Z unstable-options --out-dir build --workspace --exclude pwnd_browser
+        args: --release -Z unstable-options --out-dir build --workspace
     - name: Test
       uses: actions-rs/cargo@v1
       with:
         command: test
-        args: --release --workspace --exclude pwnd_browser
+        args: --release --workspace
     - name: Upload artifacts
       uses: actions/upload-artifact@v1
       with:
