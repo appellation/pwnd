@@ -34,7 +34,7 @@ async fn ws_handler(ws: WebSocket, user_id: String, users: Users) {
 			Ok(msg) => msg,
 		};
 
-		for conn in conns.value().iter().filter(|r#ref| *r#ref.key() == conn_id) {
+		for conn in conns.value().iter().filter(|r#ref| *r#ref.key() != conn_id) {
 			let _ = conn.send(Ok(msg.clone()));
 		}
 	}
