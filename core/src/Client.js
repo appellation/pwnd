@@ -51,16 +51,10 @@ module.exports = class Client extends EventEmitter {
     this._ws = new WebSocket(`${singallingServer}/${this.group}`);
 
     this._ws.on('open', () => {
-      // this._ws.send(JSON.stringify({
-      //   op: WebSocketOpCodes.CONNECTION_REQUEST,
-      //   group: this.group,
-      //   id: this.id,
-      // }));
       this._connect();
     });
 
     this._ws.on('message', (data) => {
-      // console.log('CLIENT', this.id, JSON.parse(data));
       const msg = JSON.parse(data);
 
       if (msg.destination && msg.destination !== this.id) return;
@@ -97,8 +91,6 @@ module.exports = class Client extends EventEmitter {
           console.log('DESTINATION MISMATCH');
           return;
         }
-
-        // console.log(msg);
 
         if (msg.type) {
           this._connectionActive = true;
@@ -163,8 +155,6 @@ module.exports = class Client extends EventEmitter {
           peer.signal(msg.d);
 
           if (!this._slavePeers[msg.id] && this._connectionActive && msg.d.type === 'answer') {
-            console.log(msg.id, Object.keys(this._slavePeers), Object.keys(this._masterPeers));
-
             this._ws.send(JSON.stringify({
               op: WebSocketOpCodes.CONNECTION_REQUEST,
               id: this.id,
@@ -209,7 +199,6 @@ module.exports = class Client extends EventEmitter {
           op: RTCOpCodes.UPDATE,
           d: {
             id,
-            type: secret.type,
             data: secret.toJSON(),
           },
         }));
@@ -227,7 +216,7 @@ module.exports = class Client extends EventEmitter {
       this._connect();
 
       const timeout = setTimeout(() => {
-        reject('Sync timed out');
+        reject(new Error('Sync timed out'));
       }, 5000);
 
       this.once('sync', () => {
@@ -252,7 +241,6 @@ module.exports = class Client extends EventEmitter {
           op: RTCOpCodes.UPDATE,
           d: {
             id,
-            type: null,
             data: null,
           },
         }));
@@ -270,7 +258,7 @@ module.exports = class Client extends EventEmitter {
       this._connect();
 
       const timeout = setTimeout(() => {
-        reject('Sync timed out');
+        reject(new Error('Sync timed out'));
       }, 5000);
 
       this.once('sync', () => {
@@ -338,8 +326,6 @@ module.exports = class Client extends EventEmitter {
     for (const peer of Object.values(this._slavePeers)) {
       peer.destroy();
     }
-
-    console.log(Object.keys(this._masterPeers), Object.keys(this._slavePeers));
   }
 
   async _sync() {
@@ -369,18 +355,15 @@ module.exports = class Client extends EventEmitter {
       for (const response of this._syncResponses) {
         if (!response.secrets[id]) continue;
 
-        if (response.secrets[id].data.lastUpdated > lastUpdate) {
+        if (response.secrets[id].lastUpdated > lastUpdate) {
           secret = response.secrets[id];
-          lastUpdate = secret.data.lastUpdated;
+          lastUpdate = secret.lastUpdated;
         }
       }
 
       const local = await this.db.get(id); // eslint-disable-line no-await-in-loop
       if (local && local.lastUpdated > lastUpdate) {
-        secret = {
-          type: local.type,
-          data: local.toJSON(),
-        };
+        secret = local.toJSON();
         lastUpdate = local.lastUpdated;
       }
 
@@ -399,9 +382,9 @@ module.exports = class Client extends EventEmitter {
     for (const [id, secretData] of Object.entries(secrets)) {
       let secret = null;
       if (secretData.type === 'WebsiteLogin') {
-        secret = new WebsiteLogin(secretData.data);
+        secret = new WebsiteLogin(secretData);
       } else if (secretData.type === 'CreditCard') {
-        secret = new CreditCard(secretData.data);
+        secret = new CreditCard(secretData);
       } else {
         throw new Error(`Unknown type ${secretData.type}`);
       }
@@ -439,8 +422,6 @@ module.exports = class Client extends EventEmitter {
   async _handlePeerData(peer, data) {
     const msg = msgpack.decode(data);
 
-    console.log(msg.op);
-
     if (msg.op === RTCOpCodes.SYNC_REQUEST) {
       this.emit('locked');
       this._lock = true;
@@ -449,10 +430,7 @@ module.exports = class Client extends EventEmitter {
       const secretIds = await this.db.getKeys();
       for (const id of secretIds) {
         const secret = await this.db.get(id); // eslint-disable-line no-await-in-loop
-        secrets[id] = {
-          type: secret.type,
-          data: secret.toJSON(),
-        };
+        secrets[id] = secret.toJSON();
       }
 
       peer.send(msgpack.encode({
@@ -469,9 +447,9 @@ module.exports = class Client extends EventEmitter {
       for (const [id, secretData] of Object.entries(msg.d.secrets)) {
         let secret = null;
         if (secretData.type === 'WebsiteLogin') {
-          secret = new WebsiteLogin(secretData.data);
+          secret = new WebsiteLogin(secretData);
         } else if (secretData.type === 'CreditCard') {
-          secret = new CreditCard(secretData.data);
+          secret = new CreditCard(secretData);
         } else {
           throw new Error(`Unknown type ${secretData.type}`);
         }
@@ -492,18 +470,18 @@ module.exports = class Client extends EventEmitter {
       this.emit('sync');
     } else if (msg.op === RTCOpCodes.UPDATE) {
       let secret = null;
-      if (msg.d.type === null) {
+      if (msg.d.data === null) {
         await this.db.delete(msg.d.id);
         this.emit('update');
         return;
       }
 
-      if (msg.d.type === 'WebsiteLogin') {
+      if (msg.d.data.type === 'WebsiteLogin') {
         secret = new WebsiteLogin(msg.d.data);
-      } else if (msg.d.type === 'CreditCard') {
+      } else if (msg.d.data.type === 'CreditCard') {
         secret = new CreditCard(msg.d.data);
       } else {
-        throw new Error(`Unknown type ${msg.d.type}`);
+        throw new Error(`Unknown type ${msg.d.data.type}`);
       }
 
       await this.db.set(msg.d.id, secret);

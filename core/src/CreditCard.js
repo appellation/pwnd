@@ -20,6 +20,7 @@ module.exports = class CreditCard {
 
   toJSON() {
     return {
+      type: this.type,
       number: this.number,
       cvc: this.cvc,
       cardholder: this.cardholder,

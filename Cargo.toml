@@ -2,10 +2,5 @@
 members = [
 	"cli",
 	"core",
-	"core-js",
 	"signaler",
-]
-
-exclude = [
-	"browser",
 ]

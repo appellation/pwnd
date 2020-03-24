@@ -19,6 +19,7 @@ module.exports = class WebsiteLogin {
 
   toJSON() {
     return {
+      type: this.type,
       website: this.website,
       username: this.username,
       password: this.password,

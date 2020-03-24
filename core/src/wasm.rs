@@ -1,20 +1,17 @@
 #![recursion_limit="256"]
-
-extern crate pwnd;
 extern crate wasm_bindgen;
 
-#[macro_use]
-extern crate arrayref;
+// #[macro_use
 
 // use pwnd::random;
-use pwnd::{
-  secret::{KeyPair, Secret, SecretStore, StaticSecret},
-};
+// use pwnd::{
+//   secret::{KeyPair, Secret, SecretStore, StaticSecret},
+// };
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
 pub fn random_string(len: usize, charset: &str) -> String {
-  pwnd::random::random_string(len, charset)
+  crate::random::random_string(len, charset)
 }
 
 // #[wasm_bindgen]
