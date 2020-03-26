@@ -49,9 +49,9 @@ jobs:
         run: |
           cd browser
           npm ci
-          npm run prepare
+          npm run build
       - name: Upload web artifacts
         uses: actions/upload-artifact@v1
         with:
           name: pwnd_browser
-          path: browser/dist
+          path: browser/out
