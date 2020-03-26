@@ -12,4 +12,3 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 pwnd = { path = "../core" }
 wasm-bindgen = "0.2.58"
-yew = { version = "0.13.2", features = ["web_sys"] }
