@@ -20,5 +20,5 @@ jobs:
         working-directory: ./core
 
       - name: Run ESLint
-        uses: icrawl/action-eslint@v1
+        run: npm run test
         working-directory: ./core
