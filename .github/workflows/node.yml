@@ -22,15 +22,12 @@ jobs:
       - name: Run ESLint
         run: npm run test
         working-directory: ./core
-        name: rust
-
-        on: [push, pull_request]
 
     build:
       runs-on: ubuntu-latest
       steps:
         - name: Checkout repository
-        - uses: actions/checkout@v2
+          uses: actions/checkout@v2
 
         - name: Install latest stable
           uses: actions-rs/toolchain@v1
