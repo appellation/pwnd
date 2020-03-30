@@ -1,6 +1,6 @@
 name: rust
 
-on: [push]
+on: [push, pull_request]
 
 jobs:
   build:
@@ -30,28 +30,3 @@ jobs:
       with:
         name: pwnd_${{ matrix.os }}
         path: build
-  wasm:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - name: Install latest stable
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          default: true
-      - name: Install Node
-        uses: actions/setup-node@v1
-        with:
-          node-version: '12.x'
-      - name: Ensure wasm32 target
-        run: rustup target add wasm32-unknown-unknown
-      - name: Install & build
-        run: |
-          cd browser
-          npm ci
-          npm run prepare
-      - name: Upload web artifacts
-        uses: actions/upload-artifact@v1
-        with:
-          name: pwnd_browser
-          path: browser/dist
