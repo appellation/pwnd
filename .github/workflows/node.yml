@@ -15,11 +15,10 @@ jobs:
         with:
           node-version: 12
 
-      - name: Move into core directory
-        run: cd core
-
       - name: Install dependencies
         run: npm install
+        working-directory: ./core
 
       - name: Run ESLint
         uses: icrawl/action-eslint@v1
+        working-directory: ./core
