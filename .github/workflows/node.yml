@@ -32,24 +32,24 @@ jobs:
         - name: Checkout repository
         - uses: actions/checkout@v2
 
-      - name: Install latest stable
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          default: true
+        - name: Install latest stable
+          uses: actions-rs/toolchain@v1
+          with:
+            toolchain: stable
+            default: true
 
-      - name: Install wasm-pack
-        run: cargo install wasm-pack
+        - name: Install wasm-pack
+          run: cargo install wasm-pack
 
-      - name: Ensure wasm32 target
-        run: rustup target add wasm32-unknown-unknown
+        - name: Ensure wasm32 target
+          run: rustup target add wasm32-unknown-unknown
 
-      - name: Build
-        command: wasm-pack build --release -t nodejs
-        working-directory: ./core
+        - name: Build
+          command: wasm-pack build --release -t nodejs
+          working-directory: ./core
 
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v1
-        with:
-          name: pwnd_core_wasm
-          path: core/pkg
+        - name: Upload artifacts
+          uses: actions/upload-artifact@v1
+          with:
+            name: pwnd_core_wasm
+            path: core/pkg
