@@ -42,7 +42,7 @@ jobs:
         run: rustup target add wasm32-unknown-unknown
 
       - name: Build
-        command: wasm-pack build --release -t nodejs
+        run: wasm-pack build --release -t nodejs
         working-directory: ./core
 
       - name: Upload artifacts
