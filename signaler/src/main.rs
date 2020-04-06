@@ -28,12 +28,7 @@ async fn ws_handler(ws: WebSocket, user_id: String, users: Users) {
 
 	conns.insert(conn_id, tx);
 
-	while let Some(result) = user_ws_rx.next().await {
-		let msg = match result {
-			Err(_) => break,
-			Ok(msg) => msg,
-		};
-
+	while let Some(Ok(msg)) = user_ws_rx.next().await {
 		for conn in conns.value().iter().filter(|r#ref| *r#ref.key() != conn_id) {
 			let _ = conn.send(Ok(msg.clone()));
 		}
