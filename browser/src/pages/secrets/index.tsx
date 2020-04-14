@@ -9,6 +9,8 @@ interface SecretsPageState {
 }
 
 export default class SecretsPage extends Component<{}, SecretsPageState> {
+	public state = { secrets: [] };
+
 	public async loadSecrets() {
 		const secrets = await Promise.all((await keys()).map(k => get<Secret>(k)));
 		this.setState({ secrets });
