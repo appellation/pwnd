@@ -1,3 +1,4 @@
+use bytes;
 use dashmap::DashMap;
 use futures::StreamExt;
 use std::sync::{
@@ -5,7 +6,18 @@ use std::sync::{
 	atomic::{AtomicUsize, Ordering},
 };
 use tokio::sync::mpsc;
-use warp::{Filter, ws::{WebSocket, Ws}};
+use warp::{
+	Filter,
+	http::{
+		Response,
+		status::StatusCode,
+	},
+	ws::{
+		Message,
+		WebSocket,
+		Ws,
+	},
+};
 
 static NEXT_CONN_ID: AtomicUsize = AtomicUsize::new(0);
 
@@ -48,12 +60,50 @@ async fn main() {
 
 	let ws = warp::path::param::<String>()
 		.and(warp::ws())
-		.and(users)
+		.and(users.clone())
 		.map(|user_id: String, ws: Ws, users: Users| {
 			ws.on_upgrade(move |socket| ws_handler(socket, user_id, users))
 		});
 
-	warp::serve(ws)
+	let post_client = warp::path!(String / usize)
+		.and(warp::post())
+		.and(warp::body::bytes())
+		.and(users.clone())
+		.map(|user_id: String, connection_id: usize, body: bytes::Bytes, users: Users| {
+			match users.get(&user_id) {
+				None => StatusCode::NOT_FOUND,
+				Some(connections) => {
+					match connections.value().get(&connection_id) {
+						None => StatusCode::NOT_FOUND,
+						Some(conn) => {
+							match conn.send(Ok(Message::binary(body.to_vec()))) {
+								Ok(_) => StatusCode::OK,
+								Err(_) => StatusCode::INTERNAL_SERVER_ERROR,
+							}
+						},
+					}
+				},
+			}
+		});
+
+	let get_clients = warp::path::param::<String>()
+		.and(warp::post())
+		.and(users)
+		.map(|user_id: String, users: Users| {
+			match users.get(&user_id) {
+				None => Response::builder().status(StatusCode::NOT_FOUND).body("".to_string()),
+				Some(connections) => {
+					let clients: Vec<String> = connections.value().into_iter().map(|entry| entry.key().to_string()).collect();
+					Response::builder().body(clients.join(","))
+				}
+			}
+		});
+
+	let routes = ws
+		.or(post_client)
+		.or(get_clients);
+
+	warp::serve(routes)
 		.run(([127, 0, 0, 1], 8000))
 		.await
 }
