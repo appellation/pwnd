@@ -1,6 +1,7 @@
 use bytes;
 use dashmap::DashMap;
 use futures::StreamExt;
+use rmp_serde;
 use std::sync::Arc;
 use tokio::sync::mpsc;
 use warp::{
@@ -82,10 +83,12 @@ async fn main() {
 		.and(users)
 		.map(|user_id: String, users: Users| {
 			match users.get(&user_id) {
-				None => Response::builder().status(StatusCode::NOT_FOUND).body("".to_string()),
+				None => Response::builder().status(StatusCode::NOT_FOUND).body(vec![]),
 				Some(connections) => {
 					let clients: Vec<String> = connections.value().into_iter().map(|entry| entry.key().to_string()).collect();
-					Response::builder().body(clients.join(","))
+					Response::builder()
+						.header("Content-Type", "application/msgpack")
+						.body(rmp_serde::to_vec(&clients).unwrap())
 				}
 			}
 		});
