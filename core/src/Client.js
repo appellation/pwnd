@@ -55,11 +55,15 @@ module.exports = (WebSocket, wrtc) => class Client extends EventEmitter {
       this.emit('ready');
     });
 
-    this._ws = new WebSocket(`ws://${singalingServer}/${this.group}`);
+    this._ws = new WebSocket(`ws://${singalingServer}/${this.group}/${this.id}`);
 
     this._ws.on('open', () => {
       this._connect();
     });
+
+    this._ws.on('error', (err) => {
+      this.emit(err);
+    })
 
     this._ws.on('message', (data) => {
       const msg = JSON.parse(data);
@@ -344,8 +348,8 @@ module.exports = (WebSocket, wrtc) => class Client extends EventEmitter {
       throw new Error('Connection already exists');
     }
 
-    const res = await fetch(`http://${this.singalingServer}/${this.group}`, { method: 'POST' });
-    const clients = (await res.text()).split(',');
+    const res = await fetch(`http://${this.singalingServer}/${this.group}`);
+    const clients = msgpack.decode(await res.buffer());
 
     if (clients.length === 1) {
       this.emit('alone');
