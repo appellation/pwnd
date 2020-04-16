@@ -1,6 +1,7 @@
 target/
 dist/
-Cargo.lock
+pkg/
+pkg-browser/
 *.pk
 *.sqlite3
 node_modules/

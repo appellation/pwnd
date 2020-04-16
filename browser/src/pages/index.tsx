@@ -1,22 +1,22 @@
 import { Component } from 'react';
+import pwnd from 'pwnd-core';
 
 class Home extends Component {
-	private randomString?: (len: number) => string;
+	private randomString?: (len: number, charset: string) => string;
 	public state = {
 		password: '',
 	};
 
 	private generatePassword() {
 		this.setState({
-			password: this.randomString(32),
+			password: this.randomString(32, 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz1234567890'),
 		});
 	}
 
-	public componentDidMount() {
-		import('&').then(({ random_string }) => {
-			this.randomString = random_string;
-			this.generatePassword();
-		});
+	public async componentDidMount() {
+		const { randomString } = await pwnd();
+		this.randomString = randomString;
+		this.generatePassword();
 	}
 
 	public render() {
