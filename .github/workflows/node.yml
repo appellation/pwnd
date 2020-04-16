@@ -4,7 +4,7 @@ on: [push, pull_request]
 
 jobs:
   lint:
-    name: ESLint
+    name: lint
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -24,8 +24,8 @@ jobs:
         working-directory: ./core
 
   test:
-    name: Node Tests
-    runs-on: macos-latest
+    name: test
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
@@ -65,7 +65,7 @@ jobs:
       - name: Install Node v12
         uses: actions/setup-node@v1
         with:
-          node-version: 12
+          node-version: 13
 
       - name: Install wasm-pack
         uses: jetli/wasm-pack-action@v0.3.0
