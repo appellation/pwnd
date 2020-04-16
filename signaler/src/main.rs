@@ -70,20 +70,16 @@ async fn main() {
 		.and(warp::body::bytes())
 		.and(users.clone())
 		.map(|user_id: String, connection_id: usize, body: bytes::Bytes, users: Users| {
-			match users.get(&user_id) {
-				None => StatusCode::NOT_FOUND,
-				Some(connections) => {
-					match connections.value().get(&connection_id) {
-						None => StatusCode::NOT_FOUND,
-						Some(conn) => {
-							match conn.send(Ok(Message::binary(body.to_vec()))) {
-								Ok(_) => StatusCode::OK,
-								Err(_) => StatusCode::INTERNAL_SERVER_ERROR,
-							}
-						},
+			users
+				.get(&user_id)
+				.as_ref()
+				.and_then(|connections| connections.value().get(&connection_id))
+				.map_or(StatusCode::NOT_FOUND, |conn| {
+					match conn.send(Ok(Message::binary(body.to_vec()))) {
+						Ok(_) => StatusCode::OK,
+						Err(_) => StatusCode::INTERNAL_SERVER_ERROR,
 					}
-				},
-			}
+				})
 		});
 
 	let get_clients = warp::path::param::<String>()
