@@ -5,20 +5,22 @@
   "main": "src/index.js",
   "scripts": {
     "test": "eslint src/",
-    "wasm": "wasm-pack build --target nodejs"
+    "wasm": "wasm-pack build --target nodejs --no-typescript --out-name index",
+    "webpack": "webpack"
   },
   "dependencies": {
     "msgpack5": "^4.2.1",
-    "sequelize": "^5.21.5",
     "simple-peer": "^9.6.2",
-    "sqlite3": "^4.1.1",
     "uuid": "^7.0.2",
     "wrtc": "^0.4.4",
     "ws": "^7.2.3"
   },
   "devDependencies": {
+    "@wasm-tool/wasm-pack-plugin": "^1.2.0",
     "eslint": "^6.8.0",
     "eslint-config-airbnb-base": "^14.1.0",
-    "eslint-plugin-import": "^2.20.1"
+    "eslint-plugin-import": "^2.20.1",
+    "webpack": "^4.42.1",
+    "webpack-cli": "^3.3.11"
   }
 }

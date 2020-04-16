@@ -16,14 +16,14 @@ jobs:
           node-version: 12
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
         working-directory: ./core
 
       - name: Run ESLint
         run: npm run test
         working-directory: ./core
 
-  build:
+  node-build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -35,14 +35,23 @@ jobs:
           toolchain: stable
           default: true
 
+      - name: Install Node
+        uses: actions/setup-node@v1
+        with:
+          node-version: '12.x'
+
       - name: Install wasm-pack
         run: cargo install wasm-pack
 
       - name: Ensure wasm32 target
         run: rustup target add wasm32-unknown-unknown
+      
+      - name: Install dependencies
+        run: npm ci
+        working-directory: ./core
 
       - name: Build
-        run: wasm-pack build --release -t nodejs
+        run: npm run wasm
         working-directory: ./core
 
       - name: Upload artifacts
@@ -50,3 +59,40 @@ jobs:
         with:
           name: pwnd_core_wasm
           path: core/pkg
+
+  browser-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Install latest stable
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          default: true
+
+      - name: Install Node
+        uses: actions/setup-node@v1
+        with:
+          node-version: '12.x'
+
+      - name: Install wasm-pack
+        run: cargo install wasm-pack
+
+      - name: Ensure wasm32 target
+        run: rustup target add wasm32-unknown-unknown
+
+      - name: Install dependencies
+        run: npm ci
+        working-directory: ./core
+
+      - name: Run ESLint
+        run: npm run webpack
+        working-directory: ./core
+
+      - name: Upload web artifacts
+        uses: actions/upload-artifact@v1
+        with:
+          name: pwnd_core_browser
+          path: core/dist

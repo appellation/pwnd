@@ -1,12 +1,12 @@
 const os = require('os');
 const { EventEmitter } = require('events');
-const WebSocket = require('ws');
 const msgpack = require('msgpack5')();
 const Peer = require('simple-peer');
-const wrtc = require('wrtc');
 const uuid = require('uuid');
 
 const Secret = require('./Secret');
+const WebSocket = require('./WebSocket');
+const wrtc = require('wrtc');
 
 const WebSocketOpCodes = {
   CONNECTION_REQUEST: 0,
