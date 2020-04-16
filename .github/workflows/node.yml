@@ -1,0 +1,52 @@
+name: node
+
+on: [push, pull_request]
+
+jobs:
+  lint:
+    name: ESLint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Install Node v12
+        uses: actions/setup-node@v1
+        with:
+          node-version: 12
+
+      - name: Install dependencies
+        run: npm install
+        working-directory: ./core
+
+      - name: Run ESLint
+        run: npm run test
+        working-directory: ./core
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Install latest stable
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          default: true
+
+      - name: Install wasm-pack
+        run: cargo install wasm-pack
+
+      - name: Ensure wasm32 target
+        run: rustup target add wasm32-unknown-unknown
+
+      - name: Build
+        run: wasm-pack build --release -t nodejs
+        working-directory: ./core
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v1
+        with:
+          name: pwnd_core_wasm
+          path: core/pkg
