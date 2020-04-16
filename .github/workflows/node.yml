@@ -45,7 +45,7 @@ jobs:
 
       - name: Ensure wasm32 target
         run: rustup target add wasm32-unknown-unknown
-      
+
       - name: Install dependencies
         run: npm ci
         working-directory: ./core
@@ -87,7 +87,7 @@ jobs:
         run: npm ci
         working-directory: ./core
 
-      - name: Run ESLint
+      - name: Run Webpack
         run: npm run webpack
         working-directory: ./core
 

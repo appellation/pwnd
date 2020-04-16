@@ -6,7 +6,7 @@ const uuid = require('uuid');
 
 const Secret = require('./Secret');
 const WebSocket = require('./WebSocket');
-const wrtc = require('wrtc');
+const wrtc = require('./wrtc');
 
 const WebSocketOpCodes = {
   CONNECTION_REQUEST: 0,

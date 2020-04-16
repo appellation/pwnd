@@ -6,5 +6,5 @@ module.exports = () => ({
   Field: require('./Field'),
   Secret: require('./Secret'),
   Section: require('./Section'),
-  randomString: require('../pkg').random_string,
+  randomString: require('../pkg').random_string, // eslint-disable-line import/no-unresolved
 });
