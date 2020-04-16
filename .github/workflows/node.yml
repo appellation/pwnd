@@ -41,7 +41,9 @@ jobs:
           node-version: '12.x'
 
       - name: Install wasm-pack
-        run: cargo install wasm-pack
+        uses: jetli/wasm-pack-action@v0.3.0
+        with:
+          version: 'latest'
 
       - name: Ensure wasm32 target
         run: rustup target add wasm32-unknown-unknown
