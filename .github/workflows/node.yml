@@ -30,6 +30,38 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v2
 
+      - name: Cache cargo registry
+        uses: actions/cache@v1
+        with:
+          path: ~/.cargo/registry
+          key: node-test-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+      - name: Cache cargo index
+        uses: actions/cache@v1
+        with:
+          path: ~/.cargo/git
+          key: node-test-cargo-index-${{ hashFiles('**/Cargo.lock') }}
+      - name: Cache cargo build
+        uses: actions/cache@v1
+        with:
+          path: target
+          key: node-test-cargo-build-target-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Install latest nightly
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly
+          default: true
+
+      - name: Build
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: --release -Z unstable-options --out-dir build --workspace
+
+      - name: Run signaling server
+        run: pwnd_signaler &
+        working-directory: ./build
+
       - name: Install Node v12
         uses: actions/setup-node@v1
         with:
@@ -39,7 +71,7 @@ jobs:
         run: npm ci
         working-directory: ./core
 
-      - name: Run ESLint
+      - name: Run Jest
         run: npm run jest
         working-directory: ./core
 

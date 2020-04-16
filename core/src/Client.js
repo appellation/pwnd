@@ -198,7 +198,7 @@ module.exports = (WebSocket, wrtc) => class Client extends EventEmitter {
         this.once('unlocked', async () => {
           this._close();
           resolve();
-        })
+        });
       }
 
       this._close();

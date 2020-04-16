@@ -7,7 +7,7 @@
   "scripts": {
     "lint": "eslint src/",
     "jest": "jest",
-    "test": "lint && jest",
+    "test": "npm run lint && jest",
     "wasm-node": "wasm-pack build --target nodejs --no-typescript --out-name index",
     "wasm-browser": "wasm-pack build --target browser --no-typescript --out-name index -d pkg-browser",
     "webpack": "webpack"

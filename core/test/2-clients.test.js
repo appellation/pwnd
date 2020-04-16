@@ -19,7 +19,7 @@ test('client2 can store secret', (done) => {
       await client2.close();
       await client1.close();
       done();
-    })
+    });
   });
 });
 
