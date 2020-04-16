@@ -59,7 +59,7 @@ jobs:
           args: --release -Z unstable-options --out-dir build --workspace
 
       - name: Run signaling server
-        run: pwnd_signaler &
+        run: ./pwnd_signaler &
         working-directory: ./build
 
       - name: Install Node v12
