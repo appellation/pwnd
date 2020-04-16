@@ -1,9 +1,5 @@
-const { DB } = require('..')();
-
-module.exports = class InMemoryDB extends DB {
+module.exports = class InMemoryDB {
   constructor() {
-    super();
-
     this.deleted = [];
     this.secrets = new Map();
   }

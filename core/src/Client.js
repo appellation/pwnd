@@ -27,7 +27,7 @@ module.exports = (WebSocket, wrtc) => class Client extends EventEmitter {
     group,
     key,
     db,
-    singalingServer,
+    signalingServer,
   } = {}) {
     super();
 
@@ -36,7 +36,7 @@ module.exports = (WebSocket, wrtc) => class Client extends EventEmitter {
     this.group = group;
     this.key = key;
     this.db = db;
-    this.singalingServer = singalingServer;
+    this.signalingServer = signalingServer;
 
     this.ready = false;
     this._connectionActive = false;
@@ -55,18 +55,18 @@ module.exports = (WebSocket, wrtc) => class Client extends EventEmitter {
       this.emit('ready');
     });
 
-    this._ws = new WebSocket(`ws://${singalingServer}/${this.group}/${this.id}`);
+    this._ws = new WebSocket(`ws://${signalingServer}/${this.group}/${this.id}`);
 
-    this._ws.on('open', () => {
+    this._ws.onopen = () => {
       this._connect();
-    });
+    };
 
-    this._ws.on('error', (err) => {
+    this._ws.onerror = (err) => {
       this.emit(err);
-    });
+    };
 
-    this._ws.on('message', (data) => {
-      const msg = JSON.parse(data);
+    this._ws.onmessage = (e) => {
+      const msg = JSON.parse(e.data);
 
       if (msg.destination && msg.destination !== this.id) return;
 
@@ -174,7 +174,7 @@ module.exports = (WebSocket, wrtc) => class Client extends EventEmitter {
           }
         }
       }
-    });
+    };
   }
 
   _close() {
@@ -348,8 +348,8 @@ module.exports = (WebSocket, wrtc) => class Client extends EventEmitter {
       throw new Error('Connection already exists');
     }
 
-    const res = await fetch(`http://${this.singalingServer}/${this.group}`);
-    const clients = msgpack.decode(await res.buffer());
+    const res = await fetch(`http://${this.signalingServer}/${this.group}`);
+    const clients = msgpack.decode(await (await res.blob()).arrayBuffer());
 
     if (clients.length === 1) {
       this.emit('alone');
