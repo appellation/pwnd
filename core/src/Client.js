@@ -148,7 +148,7 @@ module.exports = (WebSocket, wrtc) => class Client extends EventEmitter {
         } else {
           const peer = this._masterPeers[msg.id];
           if (!peer) {
-            this.emit('error', `[Client: ${this.name} ${this.id}] Missing master peer ${msg.id}`)
+            this.emit('error', `[Client: ${this.name} ${this.id}] Missing master peer ${msg.id}`);
             return;
           }
 
