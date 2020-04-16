@@ -6,7 +6,8 @@
   "browser": "src/browser.js",
   "scripts": {
     "test": "eslint src/",
-    "wasm": "wasm-pack build --target nodejs --no-typescript --out-name index",
+    "wasm-node": "wasm-pack build --target nodejs --no-typescript --out-name index",
+    "wasm-browser": "wasm-pack build --target browser --no-typescript --out-name index -d pkg-browser",
     "webpack": "webpack"
   },
   "dependencies": {

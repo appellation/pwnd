@@ -1,6 +1,7 @@
 target/
 dist/
 pkg/
+pkg-browser/
 Cargo.lock
 *.pk
 *.sqlite3

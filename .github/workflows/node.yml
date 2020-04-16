@@ -23,7 +23,7 @@ jobs:
         run: npm run test
         working-directory: ./core
 
-  node-build:
+  build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -50,49 +50,22 @@ jobs:
         run: npm ci
         working-directory: ./core
 
-      - name: Build
-        run: npm run wasm
+      - name: Build for Node
+        run: npm run wasm-node
         working-directory: ./core
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v1
         with:
-          name: pwnd_core_wasm
+          name: pwnd_core_wasm_node
           path: core/pkg
 
-  browser-build:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v2
-
-      - name: Install latest stable
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          default: true
-
-      - name: Install Node
-        uses: actions/setup-node@v1
-        with:
-          node-version: '12.x'
-
-      - name: Install wasm-pack
-        run: cargo install wasm-pack
-
-      - name: Ensure wasm32 target
-        run: rustup target add wasm32-unknown-unknown
-
-      - name: Install dependencies
-        run: npm ci
+      - name: Build for Browser
+        run: npm run wasm-browser
         working-directory: ./core
 
-      - name: Run Webpack
-        run: npm run webpack
-        working-directory: ./core
-
-      - name: Upload web artifacts
+      - name: Upload artifacts
         uses: actions/upload-artifact@v1
         with:
-          name: pwnd_core_browser
-          path: core/dist
+          name: pwnd_core_wasm_browser
+          path: core/pkg-browser

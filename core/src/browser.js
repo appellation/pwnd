@@ -1,5 +1,5 @@
 module.exports = async () => {
-  const core = await import('../pkg');
+  const core = await import('../pkg-browser');
 
   return {
     Client: require('./Client')(WebSocket, undefined),
