@@ -9,7 +9,7 @@ module.exports = class Section {
   toJSON() {
     return {
       name: this.name,
-      fields: this.fields.map((x) => x.toJSON()),
+      fields: this.fields,
     };
   }
 

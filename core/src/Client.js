@@ -5,8 +5,6 @@ const Peer = require('simple-peer');
 const uuid = require('uuid');
 
 const Secret = require('./Secret');
-const WebSocket = require('./WebSocket');
-const wrtc = require('./wrtc');
 
 const WebSocketOpCodes = {
   CONNECTION_REQUEST: 0,
@@ -22,7 +20,8 @@ const RTCOpCodes = {
   PONG: 5,
 };
 
-module.exports = class Client extends EventEmitter {
+
+module.exports = (WebSocket, wrtc) => class Client extends EventEmitter {
   constructor({
     name = os.hostname(),
     group,

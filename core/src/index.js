@@ -1,7 +1,7 @@
 /* eslint-disable global-require */
 
 module.exports = () => ({
-  Client: require('./Client'),
+  Client: require('./Client')(require('ws'), require('wrtc')),
   DB: require('./DB'),
   Field: require('./Field'),
   Secret: require('./Secret'),
