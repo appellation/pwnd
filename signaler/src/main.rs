@@ -93,9 +93,14 @@ async fn main() {
 			}
 		});
 
+	let cors = warp::cors()
+		.allow_any_origin()
+		.allow_methods(vec!["GET", "POST"]);
+
 	let routes = ws
 		.or(post_client)
-		.or(get_clients);
+		.or(get_clients)
+		.with(cors);
 
 	warp::serve(routes)
 		.run(([127, 0, 0, 1], 8000))
