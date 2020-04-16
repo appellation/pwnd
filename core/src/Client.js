@@ -63,7 +63,7 @@ module.exports = (WebSocket, wrtc) => class Client extends EventEmitter {
 
     this._ws.on('error', (err) => {
       this.emit(err);
-    })
+    });
 
     this._ws.on('message', (data) => {
       const msg = JSON.parse(data);
