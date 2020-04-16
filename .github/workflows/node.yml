@@ -25,7 +25,7 @@ jobs:
 
   test:
     name: test
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
@@ -65,7 +65,7 @@ jobs:
       - name: Install Node v12
         uses: actions/setup-node@v1
         with:
-          node-version: 13
+          node-version: 12
 
       - name: Install wasm-pack
         uses: jetli/wasm-pack-action@v0.3.0
