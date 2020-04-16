@@ -1,6 +1,9 @@
+/* eslint-disable global-require */
+
 module.exports = {
   Client: require('./Client'),
-  CreditCard: require('./CreditCard'),
   DB: require('./DB'),
-  WebsiteLogin: require('./WebsiteLogin'),
+  Field: require('./Field'),
+  Secret: require('./Secret'),
+  Section: require('./Section'),
 };
