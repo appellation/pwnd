@@ -13,11 +13,10 @@ class Home extends Component {
 		});
 	}
 
-	public componentDidMount() {
-		pwnd().then(({ randomString }) => {
-			this.randomString = randomString;
-			this.generatePassword();
-		});
+	public async componentDidMount() {
+		const { randomString } = await pwnd();
+		this.randomString = randomString;
+		this.generatePassword();
 	}
 
 	public render() {
