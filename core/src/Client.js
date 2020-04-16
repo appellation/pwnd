@@ -75,7 +75,7 @@ module.exports = (WebSocket, wrtc) => class Client extends EventEmitter {
         });
 
         this._masterPeers[msg.id].on('connect', () => {
-          console.log(`SLAVE PEER TO ${msg.id} CONNECTED`);
+          console.log(`[Client: ${this.name} ${this.id}] SLAVE PEER TO ${msg.id} CONNECTED`);
         });
 
         this._masterPeers[msg.id].on('close', () => {
@@ -83,13 +83,12 @@ module.exports = (WebSocket, wrtc) => class Client extends EventEmitter {
         });
 
         this._masterPeers[msg.id].on('error', (err) => {
-          console.log(`_masterPeers ERROR: ${err}`, this.id);
+          this.emit('error', err);
         });
 
         this._masterPeers[msg.id].on('data', (d) => this._handlePeerData(this._masterPeers[msg.id], d));
       } else if (msg.op === WebSocketOpCodes.MESSAGE) {
         if (msg.destination !== this.id) {
-          console.log('DESTINATION MISMATCH');
           return;
         }
 
@@ -117,7 +116,7 @@ module.exports = (WebSocket, wrtc) => class Client extends EventEmitter {
             });
 
             peer.on('connect', () => {
-              console.log(`MASTER PEER TO ${msg.id} CONNECTED`);
+              console.log(`[Client: ${this.name} ${this.id}] MASTER PEER TO ${msg.id} CONNECTED`);
 
               if (!this._connectionReady) {
                 if (!this._lock) {
@@ -139,7 +138,7 @@ module.exports = (WebSocket, wrtc) => class Client extends EventEmitter {
             });
 
             peer.on('error', (err) => {
-              console.log(`_slavePeers ERROR: ${err}`, this.id);
+              this.emit(err);
             });
 
             peer.on('data', (d) => this._handlePeerData(peer, d));
@@ -149,7 +148,7 @@ module.exports = (WebSocket, wrtc) => class Client extends EventEmitter {
         } else {
           const peer = this._masterPeers[msg.id];
           if (!peer) {
-            console.log('MISSING PEER');
+            this.emit('error', `[Client: ${this.name} ${this.id}] Missing master peer ${msg.id}`)
             return;
           }
 
@@ -221,7 +220,7 @@ module.exports = (WebSocket, wrtc) => class Client extends EventEmitter {
 
       const timeout = setTimeout(() => {
         // reject(new Error('Sync timed out'));
-        console.log('Sync timed out');
+        console.trace(`[Client: ${this.name} ${this.id}] Sync timed out`);
         resolve();
       }, 5000);
 
@@ -260,11 +259,12 @@ module.exports = (WebSocket, wrtc) => class Client extends EventEmitter {
 
     await this.db.delete(id);
 
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
       this._connect();
 
       const timeout = setTimeout(() => {
-        reject(new Error('Sync timed out'));
+        // reject(new Error('Sync timed out'));
+        console.trace(`[Client: ${this.name} ${this.id}] Sync timed out`);
       }, 5000);
 
       this.once('sync', () => {
@@ -322,7 +322,7 @@ module.exports = (WebSocket, wrtc) => class Client extends EventEmitter {
   }
 
   _disconnect() {
-    console.log(this.id, 'DISCONNECT');
+    console.log(`[Client: ${this.name} ${this.id}] _disconnect() called`);
 
     clearInterval(this._pingInterval);
 
