@@ -5,13 +5,16 @@
   "main": "src/index.js",
   "browser": "src/browser.js",
   "scripts": {
-    "test": "eslint src/",
+    "lint": "eslint src/",
+    "jest": "jest",
+    "test": "lint && jest",
     "wasm-node": "wasm-pack build --target nodejs --no-typescript --out-name index",
     "wasm-browser": "wasm-pack build --target browser --no-typescript --out-name index -d pkg-browser",
     "webpack": "webpack"
   },
   "dependencies": {
     "msgpack5": "^4.2.1",
+    "node-fetch": "^2.6.0",
     "simple-peer": "^9.6.2",
     "uuid": "^7.0.2",
     "wrtc": "^0.4.4",
@@ -22,6 +25,7 @@
     "eslint": "^6.8.0",
     "eslint-config-airbnb-base": "^14.1.0",
     "eslint-plugin-import": "^2.20.1",
+    "jest": "^25.3.0",
     "webpack": "^4.42.1",
     "webpack-cli": "^3.3.11"
   }

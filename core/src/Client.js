@@ -3,6 +3,7 @@ const { EventEmitter } = require('events');
 const msgpack = require('msgpack5')();
 const Peer = require('simple-peer');
 const uuid = require('uuid');
+const fetch = require('node-fetch');
 
 const Secret = require('./Secret');
 
@@ -20,14 +21,13 @@ const RTCOpCodes = {
   PONG: 5,
 };
 
-
 module.exports = (WebSocket, wrtc) => class Client extends EventEmitter {
   constructor({
     name = os.hostname(),
     group,
     key,
     db,
-    singallingServer,
+    singalingServer,
   } = {}) {
     super();
 
@@ -36,6 +36,7 @@ module.exports = (WebSocket, wrtc) => class Client extends EventEmitter {
     this.group = group;
     this.key = key;
     this.db = db;
+    this.singalingServer = singalingServer;
 
     this.ready = false;
     this._connectionActive = false;
@@ -49,7 +50,12 @@ module.exports = (WebSocket, wrtc) => class Client extends EventEmitter {
     // Peers that initiated a connection with us, WE ARE SLAVES TO THEM
     this._masterPeers = {};
 
-    this._ws = new WebSocket(`${singallingServer}/${this.group}`);
+    this.once('alone', () => {
+      this.ready = true;
+      this.emit('ready');
+    });
+
+    this._ws = new WebSocket(`ws://${singalingServer}/${this.group}`);
 
     this._ws.on('open', () => {
       this._connect();
@@ -165,11 +171,39 @@ module.exports = (WebSocket, wrtc) => class Client extends EventEmitter {
         }
       }
     });
+  }
 
-    this._readyTimeout = setTimeout(() => {
-      this.ready = true;
-      this.emit('ready');
-    }, 500);
+  _close() {
+    this._ws.close(1000);
+
+    for (const peer of Object.values(this._slavePeers)) {
+      peer.destroy();
+    }
+
+    for (const peer of Object.values(this._masterPeers)) {
+      peer.destroy();
+    }
+  }
+
+  close() {
+    return new Promise((resolve) => {
+      if (!this.ready) {
+        this.once('ready', async () => {
+          this._close();
+          resolve();
+        });
+      }
+
+      if (this._lock) {
+        this.once('unlocked', async () => {
+          this._close();
+          resolve();
+        })
+      }
+
+      this._close();
+      resolve();
+    });
   }
 
   get(id) {
@@ -215,19 +249,22 @@ module.exports = (WebSocket, wrtc) => class Client extends EventEmitter {
 
     await this.db.set(secret);
 
-    return new Promise((resolve) => {
-      this._connect();
-
+    return new Promise((resolve, reject) => {
       const timeout = setTimeout(() => {
-        // reject(new Error('Sync timed out'));
-        console.trace(`[Client: ${this.name} ${this.id}] Sync timed out`);
-        resolve();
+        reject(new Error('Sync timed out'));
       }, 5000);
 
       this.once('sync', () => {
         clearTimeout(timeout);
         resolve();
       });
+
+      this.once('alone', () => {
+        clearTimeout(timeout);
+        resolve();
+      });
+
+      this._connect();
     });
   }
 
@@ -259,18 +296,22 @@ module.exports = (WebSocket, wrtc) => class Client extends EventEmitter {
 
     await this.db.delete(id);
 
-    return new Promise((resolve) => {
-      this._connect();
-
+    return new Promise((resolve, reject) => {
       const timeout = setTimeout(() => {
-        // reject(new Error('Sync timed out'));
-        console.trace(`[Client: ${this.name} ${this.id}] Sync timed out`);
+        reject(new Error('Sync timed out'));
       }, 5000);
 
       this.once('sync', () => {
         clearTimeout(timeout);
         resolve();
       });
+
+      this.once('alone', () => {
+        clearTimeout(timeout);
+        resolve();
+      });
+
+      this._connect();
     });
   }
 
@@ -298,9 +339,17 @@ module.exports = (WebSocket, wrtc) => class Client extends EventEmitter {
     return this.db.getDeleted();
   }
 
-  _connect() {
+  async _connect() {
     if (this._connectionActive || this._connectionReady) {
       throw new Error('Connection already exists');
+    }
+
+    const res = await fetch(`http://${this.singalingServer}/${this.group}`, { method: 'POST' });
+    const clients = (await res.text()).split(',');
+
+    if (clients.length === 1) {
+      this.emit('alone');
+      return;
     }
 
     this._connectionActive = false;
