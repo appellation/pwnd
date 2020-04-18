@@ -1,5 +1,5 @@
 module.exports = async () => {
-  const core = await import('../pkg-browser');
+  const core = await import('../pkg-browser'); // eslint-disable-line import/no-unresolved
 
   return {
     Client: require('./Client')(WebSocket, undefined, core, require('./KeyPair')(core)),

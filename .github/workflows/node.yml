@@ -25,7 +25,7 @@ jobs:
 
   test:
     name: test
-    runs-on: macos-latest
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
