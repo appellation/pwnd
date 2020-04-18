@@ -1,18 +1,19 @@
 const uuid = require('uuid');
 
-const { Client, Secret } = require('..')();
+const { Client, KeyPair, Secret } = require('..')();
 const DB = require('./db');
 
 test('client2 can store secret', (done) => {
   const group = uuid.v1();
+  const keyPair = KeyPair.generate();
   const db1 = new DB();
-  const client1 = new Client({ group, db: db1, signalingServer: 'localhost:8000' });
+  const client1 = new Client({ group, keyPair, db: db1, signalingServer: 'localhost:8000' });
 
   const secret = Secret.createEmpty('test');
 
   client1.once('ready', async () => {
     const db2 = new DB();
-    const client2 = new Client({ group, db: db2, signalingServer: 'localhost:8000' });
+    const client2 = new Client({ group, keyPair, db: db2, signalingServer: 'localhost:8000' });
 
     client2.once('ready', async () => {
       await client2.set(secret);
@@ -27,15 +28,16 @@ test('client2 can store & get secret after connected, client1 can get secret', (
   expect.assertions(4);
 
   const group = uuid.v1();
+  const keyPair = KeyPair.generate();
   const db1 = new DB();
-  const client1 = new Client({ group, db: db1, signalingServer: 'localhost:8000' });
+  const client1 = new Client({ group, keyPair, db: db1, signalingServer: 'localhost:8000' });
   let client2 = null;
 
   const secret = Secret.createEmpty('test');
 
   client1.once('ready', async () => {
     const db2 = new DB();
-    client2 = new Client({ group, db: db2, signalingServer: 'localhost:8000' });
+    client2 = new Client({ group, keyPair, db: db2, signalingServer: 'localhost:8000' });
 
     client2.once('ready', async () => {
       await client2.set(secret);
@@ -58,15 +60,16 @@ test('client1 can store & get secret after client2 is connected, client2 can get
   expect.assertions(4);
 
   const group = uuid.v1();
+  const keyPair = KeyPair.generate();
   const db1 = new DB();
-  const client1 = new Client({ group, db: db1, signalingServer: 'localhost:8000' });
+  const client1 = new Client({ group, keyPair, db: db1, signalingServer: 'localhost:8000' });
   let client2 = null;
 
   const secret = Secret.createEmpty('test');
 
   client1.once('ready', async () => {
     const db2 = new DB();
-    client2 = new Client({ group, db: db2, signalingServer: 'localhost:8000' });
+    client2 = new Client({ group, keyPair, db: db2, signalingServer: 'localhost:8000' });
 
     client2.once('ready', () => {
       client1.once('unlocked', async () => {
@@ -91,8 +94,9 @@ test('client1 can store & get secret before client2 is connected, client2 can ge
   expect.assertions(4);
 
   const group = uuid.v1();
+  const keyPair = KeyPair.generate();
   const db1 = new DB();
-  const client1 = new Client({ group, db: db1, signalingServer: 'localhost:8000' });
+  const client1 = new Client({ group, keyPair, db: db1, signalingServer: 'localhost:8000' });
   let client2 = null;
 
   const secret = Secret.createEmpty('test');
@@ -103,7 +107,7 @@ test('client1 can store & get secret before client2 is connected, client2 can ge
     expect(await client1.get(secret.id)).toEqual(secret);
 
     const db2 = new DB();
-    client2 = new Client({ group, db: db2, signalingServer: 'localhost:8000' });
+    client2 = new Client({ group, keyPair, db: db2, signalingServer: 'localhost:8000' });
 
     client2.once('ready', async () => {
       expect(await client2.getKeys()).toEqual([secret.id]);

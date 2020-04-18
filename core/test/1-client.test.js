@@ -1,12 +1,13 @@
 const uuid = require('uuid');
 
-const { Client, Secret } = require('..')();
+const { Client, KeyPair, Secret } = require('..')();
 const DB = require('./db');
 
 test('standalone client can store secret', (done) => {
   const group = uuid.v1();
   const db = new DB();
-  const client = new Client({ group, db, signalingServer: 'localhost:8000' });
+  const keyPair = KeyPair.generate();
+  const client = new Client({ group, keyPair, db, signalingServer: 'localhost:8000' });
 
   const secret = Secret.createEmpty('test');
 
@@ -22,7 +23,8 @@ test('standalone client can store and recall secret', (done) => {
 
   const group = uuid.v1();
   const db = new DB();
-  const client = new Client({ group, db, signalingServer: 'localhost:8000' });
+  const keyPair = KeyPair.generate();
+  const client = new Client({ group, keyPair, db, signalingServer: 'localhost:8000' });
 
   const secret = Secret.createEmpty('test');
 
@@ -40,7 +42,8 @@ test('standalone client can store, recall, and delete secret', (done) => {
 
   const group = uuid.v1();
   const db = new DB();
-  const client = new Client({ group, db, signalingServer: 'localhost:8000' });
+  const keyPair = KeyPair.generate();
+  const client = new Client({ group, keyPair, db, signalingServer: 'localhost:8000' });
 
   const secret = Secret.createEmpty('test');
 

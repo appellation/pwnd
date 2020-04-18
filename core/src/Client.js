@@ -8,8 +8,13 @@ const fetch = require('node-fetch');
 const Secret = require('./Secret');
 
 const WebSocketOpCodes = {
-  CONNECTION_REQUEST: 0,
-  MESSAGE: 1,
+  MASTER_SIGNAL: 0,
+  SLAVE_SIGNAL: 1,
+  JOIN_REQUEST: 2,
+  JOIN: 3,
+  JOIN_INITIATOR_SIGNAL: 4,
+  JOIN_SIGNAL: 5,
+  JOIN_SUCCESS: 6,
 };
 
 const RTCOpCodes = {
@@ -19,13 +24,14 @@ const RTCOpCodes = {
   UPDATE: 3,
   PING: 4,
   PONG: 5,
+  JOIN_RESPONSE: 6,
 };
 
-module.exports = (WebSocket, wrtc) => class Client extends EventEmitter {
+module.exports = (WebSocket, wrtc, { randomString }, KeyPair) => class Client extends EventEmitter {
   constructor({
     name = os.hostname(),
     group,
-    key,
+    keyPair,
     db,
     signalingServer,
   } = {}) {
@@ -34,7 +40,7 @@ module.exports = (WebSocket, wrtc) => class Client extends EventEmitter {
     this.id = uuid.v1();
     this.name = name;
     this.group = group;
-    this.key = key;
+    this.keyPair = keyPair;
     this.db = db;
     this.signalingServer = signalingServer;
 
@@ -45,10 +51,14 @@ module.exports = (WebSocket, wrtc) => class Client extends EventEmitter {
     this._syncResponses = [];
 
     // Peers we initiated the connection to, THEY ARE SLAVES TO US
-    this._slavePeers = {};
+    this._slavePeers = new Map();
 
     // Peers that initiated a connection with us, WE ARE SLAVES TO THEM
-    this._masterPeers = {};
+    this._masterPeers = new Map();
+
+    this._pins = new Map();
+    this._joinPeer = null;
+    this._joinPeers = new Map();
 
     this.once('alone', () => {
       this.ready = true;
@@ -57,8 +67,20 @@ module.exports = (WebSocket, wrtc) => class Client extends EventEmitter {
 
     this._ws = new WebSocket(`ws://${signalingServer}/${this.group}/${this.id}`);
 
-    this._ws.onopen = () => {
-      this._connect();
+    this._ws.onopen = async () => {
+      if (this.keyPair) this._connect();
+      else {
+        const res = await fetch(`http://${this.signalingServer}/${this.group}`);
+        const clients = msgpack.decode(await (await res.blob()).arrayBuffer());
+
+        if (clients.length === 1) {
+          this._close();
+          this.emit('error', new Error('cannot join empty group'));
+          return;
+        }
+
+        this._join();
+      }
     };
 
     this._ws.onerror = (err) => {
@@ -66,125 +88,175 @@ module.exports = (WebSocket, wrtc) => class Client extends EventEmitter {
     };
 
     this._ws.onmessage = (e) => {
-      const msg = JSON.parse(e.data);
+      const msg = msgpack.decode(e.data);
 
-      if (msg.destination && msg.destination !== this.id) return;
+      if (msg.op === WebSocketOpCodes.MASTER_SIGNAL) {
+        let peer = null;
+        if (!this._masterPeers.has(msg.id)) {
+          peer = new Peer({ initiator: false, wrtc });
 
-      if (msg.op === WebSocketOpCodes.CONNECTION_REQUEST) {
-        this._masterPeers[msg.id] = new Peer({ initiator: true, wrtc });
+          peer.on('signal', (signal) => {
+            fetch(`http://${this.signalingServer}/${this.group}/${msg.id}`, {
+              method: 'POST',
+              body: msgpack.encode({
+                op: WebSocketOpCodes.SLAVE_SIGNAL,
+                id: this.id,
+                d: this.keyPair.encrypt(Buffer.from(JSON.stringify(signal))),
+              }),
+            });
+          });
 
-        this._masterPeers[msg.id].on('signal', (signal) => {
-          this._ws.send(JSON.stringify({
-            op: WebSocketOpCodes.MESSAGE,
-            id: this.id,
-            group: this.group,
-            destination: msg.id,
-            d: signal,
-            type: 1,
-          }));
-        });
+          peer.on('connect', () => {
+            console.log(`[Client: ${this.name} ${this.id}] Master peer ${msg.id} connected`);
+          });
 
-        this._masterPeers[msg.id].on('connect', () => {
-          console.log(`[Client: ${this.name} ${this.id}] SLAVE PEER TO ${msg.id} CONNECTED`);
-        });
+          peer.on('close', () => {
+            this._masterPeers.delete(msg.id);
+          });
 
-        this._masterPeers[msg.id].on('close', () => {
-          delete this._masterPeers[msg.id];
-        });
+          peer.on('error', (err) => {
+            this.emit('error', err);
+          });
 
-        this._masterPeers[msg.id].on('error', (err) => {
-          this.emit('error', err);
-        });
+          peer.on('data', (d) => this._handlePeerData(peer, d));
 
-        this._masterPeers[msg.id].on('data', (d) => this._handlePeerData(this._masterPeers[msg.id], d));
-      } else if (msg.op === WebSocketOpCodes.MESSAGE) {
-        if (msg.destination !== this.id) {
+          this._masterPeers.set(msg.id, peer);
+        } else {
+          peer = this._masterPeers.get(msg.id);
+        }
+
+        const signal = JSON.parse(Buffer.from(this.keyPair.decrypt(msg.d)));
+        peer.signal(signal);
+
+        if (!this._slavePeers.has(msg.id) && this._connectionActive && signal.type === 'offer') {
+          this._connectToSlave(msg.id);
+        }
+      } else if (msg.op === WebSocketOpCodes.SLAVE_SIGNAL) {
+        if (!this._slavePeers.has(msg.id)) {
+          console.log(`[Client: ${this.name} ${this.id}] Missing slave peer ${msg.id}`);
           return;
         }
 
-        if (msg.type) {
-          this._connectionActive = true;
-          clearTimeout(this._connectionTimeout);
-          this._connectionTimeout = setTimeout(this._disconnect.bind(this), 300000);
+        this._slavePeers.get(msg.id).signal(JSON.parse(Buffer.from(this.keyPair.decrypt(msg.d))));
+      } else if (msg.op === WebSocketOpCodes.JOIN_REQUEST) {
+        this.emit('join-request', msg.id, msg.d, () => {
+          const pin = randomString(6, '1234567890');
+          this._pins.set(msg.id, pin);
+          return pin;
+        });
+      } else if (msg.op === WebSocketOpCodes.JOIN) {
+        if (!this._pins.has(msg.id)) return;
+        if (this._pins.get(msg.id) !== msg.d.pin) return;
 
-          let peer = this._slavePeers[msg.id];
-          if (!peer) {
-            clearTimeout(this._readyTimeout);
+        const peer = new Peer({ initiator: true, wrtc });
 
-            this._slavePeers[msg.id] = new Peer({ initiator: false, wrtc });
-            peer = this._slavePeers[msg.id];
-
-            peer.on('signal', (signal) => {
-              this._ws.send(JSON.stringify({
-                op: WebSocketOpCodes.MESSAGE,
-                id: this.id,
-                group: this.group,
-                destination: msg.id,
-                d: signal,
-                type: 0,
-              }));
-            });
-
-            peer.on('connect', () => {
-              console.log(`[Client: ${this.name} ${this.id}] MASTER PEER TO ${msg.id} CONNECTED`);
-
-              if (!this._connectionReady) {
-                if (!this._lock) {
-                  setTimeout(() => {
-                    this._sync();
-                  }, 1000);
-                }
-
-                this.emit('lock');
-                this._lock = true;
-                peer.send(msgpack.encode({
-                  op: RTCOpCodes.SYNC_REQUEST,
-                }));
-              }
-            });
-
-            peer.on('close', () => {
-              delete this._slavePeers[msg.id];
-            });
-
-            peer.on('error', (err) => {
-              this.emit(err);
-            });
-
-            peer.on('data', (d) => this._handlePeerData(peer, d));
-          }
-
-          peer.signal(msg.d);
-        } else {
-          const peer = this._masterPeers[msg.id];
-          if (!peer) {
-            this.emit('error', `[Client: ${this.name} ${this.id}] Missing master peer ${msg.id}`);
-            return;
-          }
-
-          peer.signal(msg.d);
-
-          if (!this._slavePeers[msg.id] && this._connectionActive && msg.d.type === 'answer') {
-            this._ws.send(JSON.stringify({
-              op: WebSocketOpCodes.CONNECTION_REQUEST,
+        peer.on('signal', (signal) => {
+          fetch(`http://${this.signalingServer}/${this.group}/${msg.id}`, {
+            method: 'POST',
+            body: msgpack.encode({
+              op: WebSocketOpCodes.JOIN_INITIATOR_SIGNAL,
               id: this.id,
-              group: this.group,
-              destination: msg.id,
+              d: signal,
+            }),
+          });
+        });
+
+        peer.on('connect', () => {
+          console.log(`[Client: ${this.name} ${this.id}] Join peer slave ${msg.id} connected`);
+          peer.send(Buffer.from(JSON.stringify({
+            op: RTCOpCodes.JOIN_RESPONSE,
+            d: [...this.keyPair.private],
+          })));
+        });
+
+        peer.on('close', () => {
+          this._joinPeers.delete(msg.id);
+        });
+
+        peer.on('error', (err) => {
+          this.emit('error', err);
+        });
+
+        this._joinPeers.set(msg.id, peer);
+      } else if (msg.op === WebSocketOpCodes.JOIN_INITIATOR_SIGNAL) {
+        if (!this._joinPeer) {
+          this._joinPeer = new Peer({ initiator: false, wrtc });
+
+          this._joinPeer.on('signal', (signal) => {
+            fetch(`http://${this.signalingServer}/${this.group}/${msg.id}`, {
+              method: 'POST',
+              body: msgpack.encode({
+                op: WebSocketOpCodes.JOIN_SIGNAL,
+                id: this.id,
+                d: signal,
+              }),
+            });
+          });
+
+          this._joinPeer.on('connect', () => {
+            console.log(`[Client: ${this.name} ${this.id}] Join peer master ${msg.id} connected`);
+          });
+
+          this._joinPeer.on('close', () => {
+            this._joinPeer = null;
+          });
+
+          this._joinPeer.on('error', (err) => {
+            this.emit('error', err);
+          });
+
+          this._joinPeer.on('data', (data) => {
+            this.keyPair = new KeyPair(JSON.parse(data).d);
+            this.emit('key-pair', this.keyPair);
+
+            this._ws.send(msgpack.encode({
+              op: WebSocketOpCodes.JOIN_SUCCESS,
+              id: this.id,
             }));
-          }
+
+            this._connect();
+            this._joinPeer.destroy();
+          });
         }
+
+        this._joinPeer.signal(msg.d);
+      } else if (msg.op === WebSocketOpCodes.JOIN_SIGNAL) {
+        if (!this._joinPeers.has(msg.id)) {
+          console.log(`[Client: ${this.name} ${this.id}] Missing join peer ${msg.id}`);
+          return;
+        }
+
+        this._joinPeers.get(msg.id).signal(msg.d);
+      } else if (msg.op === WebSocketOpCodes.JOIN_SUCCESS) {
+        this._pins.delete(msg.id);
+        this.emit('join-success', msg.id);
       }
     };
   }
 
+  join(pin) {
+    this._joinKeyPair = KeyPair.generate();
+    this._ws.send(msgpack.encode({
+      op: WebSocketOpCodes.JOIN,
+      id: this.id,
+      d: {
+        pin,
+        publicKey: this._joinKeyPair.public.key,
+      },
+    }));
+  }
+
   _close() {
+    clearInterval(this._pingInterval);
+    clearTimeout(this._connectionTimeout);
+
     this._ws.close(1000);
 
-    for (const peer of Object.values(this._slavePeers)) {
+    for (const [, peer] of this._slavePeers) {
       peer.destroy();
     }
 
-    for (const peer of Object.values(this._masterPeers)) {
+    for (const [, peer] of this._masterPeers) {
       peer.destroy();
     }
   }
@@ -196,17 +268,15 @@ module.exports = (WebSocket, wrtc) => class Client extends EventEmitter {
           this._close();
           resolve();
         });
-      }
-
-      if (this._lock) {
+      } else if (this._lock) {
         this.once('unlocked', async () => {
           this._close();
           resolve();
         });
+      } else {
+        this._close();
+        resolve();
       }
-
-      this._close();
-      resolve();
     });
   }
 
@@ -235,14 +305,14 @@ module.exports = (WebSocket, wrtc) => class Client extends EventEmitter {
     secret.updated = [Date.now(), this.name]; // eslint-disable-line no-param-reassign
 
     if (this._connectionActive && this._connectionReady) {
-      for (const peer of Object.values(this._slavePeers)) {
-        peer.send(msgpack.encode({
+      for (const [, peer] of this._slavePeers) {
+        peer.send(this.keyPair.encrypt(Buffer.from(JSON.stringify({
           op: RTCOpCodes.UPDATE,
           d: {
             id: secret.id,
             data: secret.toJSON(),
           },
-        }));
+        }))));
       }
 
       clearTimeout(this._connectionTimeout);
@@ -282,14 +352,14 @@ module.exports = (WebSocket, wrtc) => class Client extends EventEmitter {
     }
 
     if (this._connectionActive && this._connectionReady) {
-      for (const peer of Object.values(this._slavePeers)) {
-        peer.send(msgpack.encode({
+      for (const [, peer] of this._slavePeers) {
+        peer.send(this.keyPair.encrypt(Buffer.from(JSON.stringify({
           op: RTCOpCodes.UPDATE,
           d: {
             id,
             data: null,
           },
-        }));
+        }))));
       }
 
       clearTimeout(this._connectionTimeout);
@@ -343,6 +413,60 @@ module.exports = (WebSocket, wrtc) => class Client extends EventEmitter {
     return this.db.getDeleted();
   }
 
+  _connectToSlave(id) {
+    const peer = new Peer({ initiator: true, wrtc });
+
+    peer.on('signal', (signal) => {
+      fetch(`http://${this.signalingServer}/${this.group}/${id}`, {
+        method: 'POST',
+        body: msgpack.encode({
+          op: WebSocketOpCodes.MASTER_SIGNAL,
+          id: this.id,
+          d: this.keyPair.encrypt(Buffer.from(JSON.stringify(signal))),
+        }),
+      });
+    });
+
+    peer.on('connect', () => {
+      console.log(`[Client: ${this.name} ${this.id}] Slave peer ${id} connected`);
+
+      if (!this._connectionReady) {
+        if (!this._lock) {
+          setTimeout(() => {
+            this._sync();
+          }, 1000);
+        }
+
+        this.emit('lock');
+        this._lock = true;
+        peer.send(this.keyPair.encrypt(Buffer.from(JSON.stringify({
+          op: RTCOpCodes.SYNC_REQUEST,
+        }))));
+      }
+    });
+
+    peer.on('close', () => {
+      this._slavePeers.delete(id);
+    });
+
+    peer.on('error', (err) => {
+      this.emit(err);
+    });
+
+    peer.on('data', (d) => this._handlePeerData(peer, d));
+
+    this._slavePeers.set(id, peer);
+  }
+
+  _join() {
+    this.emit('join');
+    this._ws.send(msgpack.encode({
+      op: WebSocketOpCodes.JOIN_REQUEST,
+      id: this.id,
+      d: this.name,
+    }));
+  }
+
   async _connect() {
     if (this._connectionActive || this._connectionReady) {
       throw new Error('Connection already exists');
@@ -356,20 +480,24 @@ module.exports = (WebSocket, wrtc) => class Client extends EventEmitter {
       return;
     }
 
-    this._connectionActive = false;
+    this._connectionActive = true;
     this._connectionReady = false;
 
-    this._ws.send(JSON.stringify({
-      op: WebSocketOpCodes.CONNECTION_REQUEST,
-      group: this.group,
-      id: this.id,
-    }));
+    clearTimeout(this._connectionTimeout);
+    this._connectionTimeout = setTimeout(this._disconnect.bind(this), 300000);
+
+    for (const id of clients) {
+      if (id === this.id) continue;
+      if (this._slavePeers.has(id)) continue;
+
+      this._connectToSlave(id);
+    }
 
     this._pingInterval = setInterval(() => {
-      for (const peer of Object.values(this._slavePeers)) {
-        peer.send(msgpack.encode({
+      for (const [, peer] of this._slavePeers) {
+        peer.send(this.keyPair.encrypt(Buffer.from(JSON.stringify({
           op: RTCOpCodes.PING,
-        }));
+        }))));
       }
     }, 60000);
   }
@@ -378,11 +506,12 @@ module.exports = (WebSocket, wrtc) => class Client extends EventEmitter {
     console.log(`[Client: ${this.name} ${this.id}] _disconnect() called`);
 
     clearInterval(this._pingInterval);
+    clearTimeout(this._connectionTimeout);
 
     this._connectionReady = false;
     this._connectionActive = false;
 
-    for (const peer of Object.values(this._slavePeers)) {
+    for (const [, peer] of this._slavePeers) {
       peer.destroy();
     }
   }
@@ -429,13 +558,13 @@ module.exports = (WebSocket, wrtc) => class Client extends EventEmitter {
       secrets[id] = secret;
     }
 
-    const truthPacket = msgpack.encode({
+    const truthPacket = this.keyPair.encrypt(Buffer.from(JSON.stringify({
       op: RTCOpCodes.SYNC_TRUTH,
       d: {
         deleted,
         secrets,
       },
-    });
+    })));
 
     const promises = [];
     for (const secretData of Object.values(secrets)) {
@@ -450,7 +579,7 @@ module.exports = (WebSocket, wrtc) => class Client extends EventEmitter {
 
     await Promise.all(promises);
 
-    for (const peer of Object.values(this._slavePeers)) {
+    for (const [, peer] of this._slavePeers) {
       peer.send(truthPacket);
     }
 
@@ -472,7 +601,13 @@ module.exports = (WebSocket, wrtc) => class Client extends EventEmitter {
   }
 
   async _handlePeerData(peer, data) {
-    const msg = msgpack.decode(data);
+    let msg = null;
+    try {
+      msg = JSON.parse(Buffer.from(this.keyPair.decrypt(data)).toString());
+    } catch (err) {
+      return;
+    }
+
 
     if (msg.op === RTCOpCodes.SYNC_REQUEST) {
       this.emit('locked');
@@ -485,13 +620,13 @@ module.exports = (WebSocket, wrtc) => class Client extends EventEmitter {
         secrets[id] = secret.toJSON();
       }
 
-      peer.send(msgpack.encode({
+      peer.send(this.keyPair.encrypt(Buffer.from(JSON.stringify({
         op: RTCOpCodes.SYNC_RESPONSE,
         d: {
           secrets,
           deleted: await this.db.getDeleted(),
         },
-      }));
+      }))));
     } else if (msg.op === RTCOpCodes.SYNC_RESPONSE) {
       this._syncResponses.push(msg.d);
     } else if (msg.op === RTCOpCodes.SYNC_TRUTH) {
@@ -526,9 +661,9 @@ module.exports = (WebSocket, wrtc) => class Client extends EventEmitter {
 
       this.emit('update', secret);
     } else if (msg.op === RTCOpCodes.PING) {
-      peer.send(msgpack.encode({
+      peer.send(this.keyPair.encrypt(Buffer.from(JSON.stringify({
         op: RTCOpCodes.PONG,
-      }));
+      }))));
     }
   }
 };
