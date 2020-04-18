@@ -1,7 +1,7 @@
 /* eslint-disable global-require */
 
 module.exports = () => {
-  const core = require('../pkg');  // eslint-disable-line import/no-unresolved
+  const core = require('../pkg'); // eslint-disable-line import/no-unresolved
 
   return {
     Client: require('./Client')(require('ws'), require('wrtc'), core, require('./KeyPair')(core)),
