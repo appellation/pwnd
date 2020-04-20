@@ -4,7 +4,7 @@ import { Component } from 'react';
 export interface SecretListItemProps {
 	id: string;
 	title: string;
-	subtitle: string;
+	subtitle?: string;
 }
 
 export default class SecretListItem extends Component<SecretListItemProps> {
