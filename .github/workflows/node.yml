@@ -4,7 +4,7 @@ on: [push, pull_request]
 
 jobs:
   lint:
-    name: ESLint
+    name: lint
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -20,7 +20,71 @@ jobs:
         working-directory: ./core
 
       - name: Run ESLint
-        run: npm run test
+        run: npm run lint
+        working-directory: ./core
+
+  test:
+    name: test
+    runs-on: macos-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Cache cargo registry
+        uses: actions/cache@v1
+        with:
+          path: ~/.cargo/registry
+          key: node-test-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+      - name: Cache cargo index
+        uses: actions/cache@v1
+        with:
+          path: ~/.cargo/git
+          key: node-test-cargo-index-${{ hashFiles('**/Cargo.lock') }}
+      - name: Cache cargo build
+        uses: actions/cache@v1
+        with:
+          path: target
+          key: node-test-cargo-build-target-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Install latest nightly
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly
+          default: true
+
+      - name: Build signaling server
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: --release -Z unstable-options --out-dir build --workspace
+
+      - name: Run signaling server
+        run: ./pwnd_signaler &
+        working-directory: ./build
+
+      - name: Install Node v12
+        uses: actions/setup-node@v1
+        with:
+          node-version: 12
+
+      - name: Install wasm-pack
+        uses: jetli/wasm-pack-action@v0.3.0
+        with:
+          version: 'latest'
+
+      - name: Ensure wasm32 target
+        run: rustup target add wasm32-unknown-unknown
+
+      - name: Install dependencies
+        run: npm ci
+        working-directory: ./core
+
+      - name: Build WASM
+        run: npm run wasm-node
+        working-directory: ./core
+
+      - name: Run Jest
+        run: npm run jest
         working-directory: ./core
 
   build:
