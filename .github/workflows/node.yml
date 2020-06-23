@@ -79,6 +79,9 @@ jobs:
       - name: Install pnpm
         run: npm install -g pnpm
 
+      - name: Install node-(pre-)gyp
+        run: pnpm i -g node-gyp node-pre-gyp
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
@@ -128,6 +131,9 @@ jobs:
 
       - name: Install pnpm
         run: npm install -g pnpm
+
+      - name: Install node-(pre-)gyp
+        run: pnpm i -g node-gyp node-pre-gyp
 
       - name: Install dependencies
         run: pnpm install
