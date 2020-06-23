@@ -9,8 +9,7 @@
     "lint": "eslint --ext .ts src/",
     "lint:fix": "eslint --ext .ts --fix src/",
     "test": "pnpm run lint && jest",
-    "prepare": "pnpm run build",
-    "build": "tsc & npm run wasm-node & npm run wasm-browser",
+    "prepare": "tsc & npm run wasm-node & npm run wasm-browser",
     "wasm-node": "wasm-pack build --target nodejs --out-name index",
     "wasm-browser": "wasm-pack build --target browser --out-name index -d pkg-browser",
     "webpack": "webpack"

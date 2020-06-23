@@ -86,9 +86,9 @@ jobs:
         run: pnpm install --frozen-lockfile --reporter=append-only
 
       - name: Run Jest
-        run: pnpm recursive --filter pwnd-core test
+        run: pnpm recursive --filter pwnd-core test # TODO: add tests to browser
 
-  build-core:
+  build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -138,6 +138,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile --reporter=append-only
 
+      - name: Run build steps
+        run: pnpm recursive run build
+
       - name: Upload Node artifacts
         uses: actions/upload-artifact@v1
         with:
@@ -149,3 +152,9 @@ jobs:
         with:
           name: pwnd_core_wasm_browser
           path: core/pkg-browser
+
+      - name: Upload browser artifacts
+        uses: actions/upload-artifact@v1
+        with:
+          name: pwnd_browser
+          with: browser/out
