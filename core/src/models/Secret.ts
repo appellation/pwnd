@@ -1,9 +1,45 @@
-const uuid = require('uuid');
+import uuid = require('uuid');
+import Field, { FieldType } from './Field';
+import Section, { RawSection } from './Section';
 
-const Field = require('./Field');
-const Section = require('./Section');
+export type RawSecret = BaseSecret<RawSection>;
 
-class Secret {
+export interface BaseSecret<Section> {
+  id: string;
+  type: SecretType;
+  name: string;
+  icon: string | null;
+  data: Section[];
+  custom: Section[];
+  notes: string;
+  updated: any;
+  created: any;
+}
+
+export enum SecretType {
+  EMPTY,
+  LOGIN,
+}
+
+export default class Secret {
+  public id: string;
+
+  public type: SecretType;
+
+  public name: string;
+
+  public icon: string | null;
+
+  public data: Section[];
+
+  public custom: Section[];
+
+  public notes: string;
+
+  public updated: any;
+
+  public created: any;
+
   constructor({
     id,
     type,
@@ -14,7 +50,7 @@ class Secret {
     notes,
     updated,
     created,
-  }) {
+  }: BaseSecret<Section>) {
     this.id = id;
     this.type = type;
     this.name = name;
@@ -29,10 +65,10 @@ class Secret {
     this.created = created;
   }
 
-  static createEmpty(name) {
+  static createEmpty(name: string) {
     return new Secret({
       id: uuid.v1(),
-      type: Secret.EMPTY,
+      type: SecretType.EMPTY,
       name,
       icon: null,
       data: [],
@@ -43,10 +79,10 @@ class Secret {
     });
   }
 
-  static createLogin(name, username, password) {
+  static createLogin(name: string, username: string, password: string) {
     return new Secret({
       id: uuid.v1(),
-      type: Secret.EMPTY,
+      type: SecretType.EMPTY,
       name,
       icon: null,
       data: [
@@ -56,12 +92,12 @@ class Secret {
             new Field({
               name: 'username',
               value: username,
-              type: Field.TEXT,
+              type: FieldType.TEXT,
             }),
             new Field({
               name: 'password',
               value: password,
-              type: Field.HIDDEN,
+              type: FieldType.HIDDEN,
             }),
           ],
         }),
@@ -97,7 +133,7 @@ class Secret {
     notes,
     updated,
     created,
-  }) {
+  }: RawSecret) {
     return new Secret({
       id,
       type,
@@ -111,8 +147,3 @@ class Secret {
     });
   }
 }
-
-Secret.EMPTY = 0;
-Secret.LOGIN = 1;
-
-module.exports = Secret;

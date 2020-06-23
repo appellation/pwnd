@@ -1,7 +1,3 @@
-extern crate aes;
-extern crate rand;
-extern crate x25519_dalek;
-
 use aes::{
 	Aes256,
 	block_cipher_trait::{

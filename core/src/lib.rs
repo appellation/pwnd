@@ -3,7 +3,5 @@
 #[macro_use]
 extern crate arrayref;
 
-pub mod secret;
-pub mod random;
-pub mod sync;
-pub mod wasm;
+mod wasm;
+pub use wasm::*;

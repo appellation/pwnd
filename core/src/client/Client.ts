@@ -1,34 +1,56 @@
-const os = require('os');
-const { EventEmitter } = require('events');
-const msgpack = require('msgpack5')();
-const Peer = require('simple-peer');
-const uuid = require('uuid');
-const fetch = require('node-fetch');
+import { EventEmitter } from 'events';
+import fetch from 'node-fetch';
 
-const Secret = require('./Secret');
+import { RTCPacket, RTCSync, WebSocketOpCodes, RTCOpCode } from './Op';
+import Secret, { RawSecret } from '../models/Secret';
+import os = require('os');
+import mp5 = require('msgpack5');
+import Peer = require('simple-peer');
+import uuid = require('uuid');
+import DB from '../models/DB';
 
-const WebSocketOpCodes = {
-  CONNECTION_REQUEST: 0,
-  MESSAGE: 1,
-};
+const msgpack = mp5();
 
-const RTCOpCodes = {
-  SYNC_REQUEST: 0,
-  SYNC_RESPONSE: 1,
-  SYNC_TRUTH: 2,
-  UPDATE: 3,
-  PING: 4,
-  PONG: 5,
-};
+export interface ClientOptions {
+  name?: string;
+  group: string;
+  key: string;
+  db: DB<string, Secret>;
+  signalingServer: string;
+}
 
-module.exports = (WebSocket, wrtc) => class Client extends EventEmitter {
+// eslint-disable-next-line @typescript-eslint/ban-types
+export default (WebSocket: any, wrtc?: {}) => class Client extends EventEmitter {
+  public id: string;
+  public name: string;
+  public group: string;
+  public key: string;
+  public db: DB<string, Secret>;
+  public signalingServer: string;
+  public ready = false;
+
+  protected _connectionActive = false;
+  protected _connectionReady = false;
+  protected _syncResponses: RTCSync[] = [];
+  protected _connectionTimeout?: NodeJS.Timeout;
+  protected _readyTimeout?: NodeJS.Timeout;
+  protected _pingInterval?: NodeJS.Timeout;
+  protected _lock = false;
+
+  // Peers we initiated the connection to, THEY ARE SLAVES TO US
+  protected _slavePeers: Record<string, Peer.Instance> = {};
+
+  // Peers that initiated a connection with us, WE ARE SLAVES TO THEM
+  protected _masterPeers: Record<string, Peer.Instance> = {};
+  protected _ws: WebSocket;
+
   constructor({
     name = os.hostname(),
     group,
     key,
     db,
     signalingServer,
-  } = {}) {
+  }: ClientOptions) {
     super();
 
     this.id = uuid.v1();
@@ -37,18 +59,6 @@ module.exports = (WebSocket, wrtc) => class Client extends EventEmitter {
     this.key = key;
     this.db = db;
     this.signalingServer = signalingServer;
-
-    this.ready = false;
-    this._connectionActive = false;
-    this._connectionReady = false;
-
-    this._syncResponses = [];
-
-    // Peers we initiated the connection to, THEY ARE SLAVES TO US
-    this._slavePeers = {};
-
-    // Peers that initiated a connection with us, WE ARE SLAVES TO THEM
-    this._masterPeers = {};
 
     this.once('alone', () => {
       this.ready = true;
@@ -62,7 +72,7 @@ module.exports = (WebSocket, wrtc) => class Client extends EventEmitter {
     };
 
     this._ws.onerror = (err) => {
-      this.emit(err);
+      this.emit('error', err);
     };
 
     this._ws.onmessage = (e) => {
@@ -104,12 +114,12 @@ module.exports = (WebSocket, wrtc) => class Client extends EventEmitter {
 
         if (msg.type) {
           this._connectionActive = true;
-          clearTimeout(this._connectionTimeout);
+          clearTimeout(this._connectionTimeout!);
           this._connectionTimeout = setTimeout(this._disconnect.bind(this), 300000);
 
           let peer = this._slavePeers[msg.id];
           if (!peer) {
-            clearTimeout(this._readyTimeout);
+            clearTimeout(this._readyTimeout!);
 
             this._slavePeers[msg.id] = new Peer({ initiator: false, wrtc });
             peer = this._slavePeers[msg.id];
@@ -138,8 +148,8 @@ module.exports = (WebSocket, wrtc) => class Client extends EventEmitter {
                 this.emit('lock');
                 this._lock = true;
                 peer.send(msgpack.encode({
-                  op: RTCOpCodes.SYNC_REQUEST,
-                }));
+                  op: RTCOpCode.SYNC_REQUEST,
+                }).slice());
               }
             });
 
@@ -148,7 +158,7 @@ module.exports = (WebSocket, wrtc) => class Client extends EventEmitter {
             });
 
             peer.on('error', (err) => {
-              this.emit(err);
+              this.emit('error', err);
             });
 
             peer.on('data', (d) => this._handlePeerData(peer, d));
@@ -210,7 +220,7 @@ module.exports = (WebSocket, wrtc) => class Client extends EventEmitter {
     });
   }
 
-  get(id) {
+  get(id: string) {
     if (!this.ready) {
       throw new Error('Cannot access database before client is ready');
     }
@@ -222,7 +232,7 @@ module.exports = (WebSocket, wrtc) => class Client extends EventEmitter {
     return this.db.get(id);
   }
 
-  async set(secret) {
+  async set(secret: Secret) {
     if (!this.ready) {
       throw new Error('Cannot access database before client is ready');
     }
@@ -237,21 +247,21 @@ module.exports = (WebSocket, wrtc) => class Client extends EventEmitter {
     if (this._connectionActive && this._connectionReady) {
       for (const peer of Object.values(this._slavePeers)) {
         peer.send(msgpack.encode({
-          op: RTCOpCodes.UPDATE,
+          op: RTCOpCode.UPDATE,
           d: {
             id: secret.id,
             data: secret.toJSON(),
           },
-        }));
+        }).slice());
       }
 
-      clearTimeout(this._connectionTimeout);
+      clearTimeout(this._connectionTimeout!);
       this._connectionTimeout = setTimeout(this._disconnect.bind(this), 300000);
 
-      return this.db.set(secret);
+      return this.db.set(secret.id, secret);
     }
 
-    await this.db.set(secret);
+    await this.db.set(secret.id, secret);
 
     return new Promise((resolve, reject) => {
       const timeout = setTimeout(() => {
@@ -272,7 +282,7 @@ module.exports = (WebSocket, wrtc) => class Client extends EventEmitter {
     });
   }
 
-  async delete(id) {
+  async delete(id: string) {
     if (!this.ready) {
       throw new Error('Cannot access database before client is ready');
     }
@@ -284,15 +294,15 @@ module.exports = (WebSocket, wrtc) => class Client extends EventEmitter {
     if (this._connectionActive && this._connectionReady) {
       for (const peer of Object.values(this._slavePeers)) {
         peer.send(msgpack.encode({
-          op: RTCOpCodes.UPDATE,
+          op: RTCOpCode.UPDATE,
           d: {
             id,
             data: null,
           },
-        }));
+        }).slice());
       }
 
-      clearTimeout(this._connectionTimeout);
+      clearTimeout(this._connectionTimeout!);
       this._connectionTimeout = setTimeout(this._disconnect.bind(this), 300000);
 
       return this.db.delete(id);
@@ -349,7 +359,7 @@ module.exports = (WebSocket, wrtc) => class Client extends EventEmitter {
     }
 
     const res = await fetch(`http://${this.signalingServer}/${this.group}`);
-    const clients = msgpack.decode(await (await res.blob()).arrayBuffer());
+    const clients = msgpack.decode(await res.buffer());
 
     if (clients.length === 1) {
       this.emit('alone');
@@ -368,8 +378,8 @@ module.exports = (WebSocket, wrtc) => class Client extends EventEmitter {
     this._pingInterval = setInterval(() => {
       for (const peer of Object.values(this._slavePeers)) {
         peer.send(msgpack.encode({
-          op: RTCOpCodes.PING,
-        }));
+          op: RTCOpCode.PING,
+        }).slice());
       }
     }, 60000);
   }
@@ -377,7 +387,7 @@ module.exports = (WebSocket, wrtc) => class Client extends EventEmitter {
   _disconnect() {
     console.log(`[Client: ${this.name} ${this.id}] _disconnect() called`);
 
-    clearInterval(this._pingInterval);
+    clearInterval(this._pingInterval!);
 
     this._connectionReady = false;
     this._connectionActive = false;
@@ -406,7 +416,7 @@ module.exports = (WebSocket, wrtc) => class Client extends EventEmitter {
       }
     }
 
-    const secrets = {};
+    const secrets: Record<string, RawSecret> = {};
     for (const id of secretIds) {
       let lastUpdate = 0;
       let secret = null;
@@ -426,11 +436,12 @@ module.exports = (WebSocket, wrtc) => class Client extends EventEmitter {
         [lastUpdate] = local.updated;
       }
 
+      if (secret === null) continue;
       secrets[id] = secret;
     }
 
     const truthPacket = msgpack.encode({
-      op: RTCOpCodes.SYNC_TRUTH,
+      op: RTCOpCode.SYNC_TRUTH,
       d: {
         deleted,
         secrets,
@@ -441,7 +452,7 @@ module.exports = (WebSocket, wrtc) => class Client extends EventEmitter {
     for (const secretData of Object.values(secrets)) {
       const secret = Secret.fromJSON(secretData);
 
-      promises.push(this.db.set(secret));
+      promises.push(this.db.set(secret.id, secret));
     }
 
     for (const id of deleted) {
@@ -451,7 +462,7 @@ module.exports = (WebSocket, wrtc) => class Client extends EventEmitter {
     await Promise.all(promises);
 
     for (const peer of Object.values(this._slavePeers)) {
-      peer.send(truthPacket);
+      peer.send(truthPacket.slice());
     }
 
     this._syncResponses = [];
@@ -471,14 +482,14 @@ module.exports = (WebSocket, wrtc) => class Client extends EventEmitter {
     this.emit('sync');
   }
 
-  async _handlePeerData(peer, data) {
-    const msg = msgpack.decode(data);
+  async _handlePeerData(peer: Peer.Instance, data: Buffer) {
+    const msg: RTCPacket = msgpack.decode(data);
 
-    if (msg.op === RTCOpCodes.SYNC_REQUEST) {
+    if (msg.op === RTCOpCode.SYNC_REQUEST) {
       this.emit('locked');
       this._lock = true;
 
-      const secrets = {};
+      const secrets: Record<string, RawSecret> = {};
       const secretIds = await this.db.getKeys();
       for (const id of secretIds) {
         const secret = await this.db.get(id); // eslint-disable-line no-await-in-loop
@@ -486,20 +497,20 @@ module.exports = (WebSocket, wrtc) => class Client extends EventEmitter {
       }
 
       peer.send(msgpack.encode({
-        op: RTCOpCodes.SYNC_RESPONSE,
+        op: RTCOpCode.SYNC_RESPONSE,
         d: {
           secrets,
           deleted: await this.db.getDeleted(),
         },
-      }));
-    } else if (msg.op === RTCOpCodes.SYNC_RESPONSE) {
+      }).slice());
+    } else if (msg.op === RTCOpCode.SYNC_RESPONSE) {
       this._syncResponses.push(msg.d);
-    } else if (msg.op === RTCOpCodes.SYNC_TRUTH) {
+    } else if (msg.op === RTCOpCode.SYNC_TRUTH) {
       const promises = [];
       for (const secretData of Object.values(msg.d.secrets)) {
         const secret = Secret.fromJSON(secretData);
 
-        promises.push(this.db.set(secret));
+        promises.push(this.db.set(secret.id, secret));
       }
 
       for (const id of msg.d.deleted) {
@@ -513,7 +524,7 @@ module.exports = (WebSocket, wrtc) => class Client extends EventEmitter {
       this.emit('unlocked');
       this.emit('update');
       this.emit('sync');
-    } else if (msg.op === RTCOpCodes.UPDATE) {
+    } else if (msg.op === RTCOpCode.UPDATE) {
       if (msg.d.data === null) {
         await this.db.delete(msg.d.id);
         this.emit('update');
@@ -522,13 +533,13 @@ module.exports = (WebSocket, wrtc) => class Client extends EventEmitter {
 
       const secret = Secret.fromJSON(msg.d.data);
 
-      await this.db.set(secret);
+      await this.db.set(secret.id, secret);
 
       this.emit('update', secret);
-    } else if (msg.op === RTCOpCodes.PING) {
+    } else if (msg.op === RTCOpCode.PING) {
       peer.send(msgpack.encode({
-        op: RTCOpCodes.PONG,
-      }));
+        op: RTCOpCode.PONG,
+      }).slice());
     }
   }
 };
