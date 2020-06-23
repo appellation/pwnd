@@ -1,6 +1,7 @@
 import { Component } from 'react';
 import Link from 'next/link';
-import pwnd from 'pwnd-core';
+
+import pwnd from '../core';
 
 export default class Generate extends Component {
 	private randomString?: (len: number, charset: string) => string;
@@ -15,8 +16,8 @@ export default class Generate extends Component {
 	}
 
 	public async componentDidMount() {
-		const { randomString } = await pwnd();
-		this.randomString = randomString;
+		const { wasm: { random_string } } = await pwnd();
+		this.randomString = random_string;
 		this.generatePassword();
 	}
 

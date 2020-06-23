@@ -19,7 +19,7 @@ jobs:
         run: npm install -g pnpm
 
       - name: Install dependencies
-        run: pnpm install --ignore-scripts --frozen-lockfile
+        run: pnpm install --ignore-scripts --frozen-lockfile --reporter=append-only
 
       - name: Run ESLint
         run: pnpm recursive run lint
@@ -83,7 +83,7 @@ jobs:
         run: pnpm i -g node-gyp node-pre-gyp
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --frozen-lockfile --reporter=append-only
 
       - name: Run Jest
         run: pnpm recursive --filter pwnd-core test
@@ -136,8 +136,7 @@ jobs:
         run: pnpm i -g node-gyp node-pre-gyp
 
       - name: Install dependencies
-        run: pnpm install
-        working-directory: ./core
+        run: pnpm install --frozen-lockfile --reporter=append-only
 
       - name: Upload Node artifacts
         uses: actions/upload-artifact@v1

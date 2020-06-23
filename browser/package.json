@@ -7,7 +7,8 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "next",
     "build": "next build && next export",
-    "start": "next start"
+    "start": "next start",
+    "prepare": "pnpm run build"
   },
   "author": "Will Nelson <will@wnelson.xyz>",
   "license": "GPL-2.0",
