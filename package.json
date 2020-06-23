@@ -1,0 +1,5 @@
+{
+	"devDependencies": {
+		"dom-serializer": "^1.0.1"
+	}
+}

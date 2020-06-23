@@ -1,4 +1,9 @@
 importers:
+  .:
+    devDependencies:
+      dom-serializer: 1.0.1
+    specifiers:
+      dom-serializer: ^1.0.1
   browser:
     dependencies:
       idb-keyval: 3.2.0
@@ -3552,6 +3557,14 @@ packages:
     dev: false
     resolution:
       integrity: sha512-2/xPb3ORsQ42nHYiSunXkDjPLBaEj/xTwUO4B7XCZQTRk7EBtTOPaygh10YAAh2OI1Qrp6NWfpAhzswj0ydt9g==
+  /dom-serializer/1.0.1:
+    dependencies:
+      domelementtype: 2.0.1
+      domhandler: 3.0.0
+      entities: 2.0.3
+    dev: true
+    resolution:
+      integrity: sha512-1Aj1Qy3YLbdslkI75QEOfdp9TkQ3o8LRISAzxOibjBs/xWwr1WxZFOQphFkZuepHFGo+kB8e5FVJSS0faAJ4Rw==
   /domain-browser/1.2.0:
     engines:
       node: '>=0.4'
@@ -3563,7 +3576,6 @@ packages:
     resolution:
       integrity: sha512-BSKB+TSpMpFI/HOxCNr1O8aMOTZ8hT3pM3GQ0w/mWRmkhEDSFJkkyzz4XQsBV44BChwGkrDfMyjVD0eA2aFV3w==
   /domelementtype/2.0.1:
-    dev: false
     resolution:
       integrity: sha512-5HOHUDsYZWV8FGWN0Njbr/Rn7f/eWSQi1v7+HsUVwXgn8nWWlL64zKDkS0n8ZmQ3mlWOMuXOnR+7Nx/5tMO5AQ==
   /domexception/1.0.1:
@@ -3574,7 +3586,6 @@ packages:
   /domhandler/3.0.0:
     dependencies:
       domelementtype: 2.0.1
-    dev: false
     engines:
       node: '>= 4'
     resolution:
@@ -3675,7 +3686,6 @@ packages:
     resolution:
       integrity: sha512-S7eiFb/erugyd1rLb6mQ3Vuq+EXHv5cpCkNqqIkYkBgN2QdFnyCZzFBleqwGEx4lgNGYij81BWnCrFNK7vxvjQ==
   /entities/2.0.3:
-    dev: false
     resolution:
       integrity: sha512-MyoZ0jgnLvB2X3Lg5HqpFmn1kybDiIfEQmKzTb5apr51Rb+T3KdmMiqa70T+bhGnyv7bQ6WMj2QMHpGMmlrUYQ==
   /errno/0.1.7:
