@@ -15,17 +15,18 @@ jobs:
         with:
           node-version: 12
 
+      - name: Install pnpm
+        run: npm install -g pnpm
+
       - name: Install dependencies
-        run: npm ci
-        working-directory: ./core
+        run: pnpm install --ignore-scripts --frozen-lockfile
 
       - name: Run ESLint
-        run: npm run lint
-        working-directory: ./core
+        run: pnpm recursive run lint
 
   test:
     name: test
-    runs-on: macos-latest
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
@@ -76,18 +77,12 @@ jobs:
         run: rustup target add wasm32-unknown-unknown
 
       - name: Install dependencies
-        run: npm ci
-        working-directory: ./core
-
-      - name: Build WASM
-        run: npm run wasm-node
-        working-directory: ./core
+        run: pnpm install --frozen-lockfile
 
       - name: Run Jest
-        run: npm run jest
-        working-directory: ./core
+        run: pnpm recursive --filter pwnd-core test
 
-  build:
+  build-core:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -129,24 +124,16 @@ jobs:
         run: rustup target add wasm32-unknown-unknown
 
       - name: Install dependencies
-        run: npm ci
+        run: pnpm install
         working-directory: ./core
 
-      - name: Build for Node
-        run: npm run wasm-node
-        working-directory: ./core
-
-      - name: Upload artifacts
+      - name: Upload Node artifacts
         uses: actions/upload-artifact@v1
         with:
           name: pwnd_core_wasm_node
           path: core/pkg
 
-      - name: Build for Browser
-        run: npm run wasm-browser
-        working-directory: ./core
-
-      - name: Upload artifacts
+      - name: Upload WASM artifacts
         uses: actions/upload-artifact@v1
         with:
           name: pwnd_core_wasm_browser

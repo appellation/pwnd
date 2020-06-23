@@ -9,7 +9,7 @@
     "lint:fix": "eslint --ext .ts --fix src/",
     "jest": "jest",
     "test": "npm run lint && jest",
-    "prepare": "npm run wasm-node & npm run wasm-browser",
+    "prepare": "tsc & npm run wasm-node & npm run wasm-browser",
     "wasm-node": "wasm-pack build --target nodejs --out-name index",
     "wasm-browser": "wasm-pack build --target browser --out-name index -d pkg-browser",
     "webpack": "webpack"
@@ -19,7 +19,7 @@
     "node-fetch": "^2.6.0",
     "simple-peer": "^9.7.2",
     "uuid": "^7.0.2",
-    "wrtc": "^0.4.4",
+    "wrtc": "^0.4.5",
     "ws": "^7.2.3"
   },
   "devDependencies": {
@@ -32,8 +32,8 @@
     "@typescript-eslint/eslint-plugin": "^3.4.0",
     "@typescript-eslint/parser": "^3.4.0",
     "@wasm-tool/wasm-pack-plugin": "^1.2.0",
+    "dom-serializer": "^1.0.1",
     "eslint": "^6.8.0",
-    "eslint-config-airbnb-base": "^14.1.0",
     "jest": "^25.3.0",
     "typescript": "^3.9.5",
     "webpack": "^4.42.1",

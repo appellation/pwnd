@@ -1,6 +1,6 @@
 const uuid = require('uuid');
 
-const { Client, Secret } = require('..')();
+const { Client, Secret } = require('../dist').default();
 const DB = require('./db');
 
 test('client2 can store secret', (done) => {

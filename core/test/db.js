@@ -10,8 +10,8 @@ module.exports = class InMemoryDB {
     return this.secrets.get(id);
   }
 
-  async set(secret) {
-    this.secrets.set(secret.id, secret);
+  async set(id, secret) {
+    this.secrets.set(id, secret);
   }
 
   async delete(id) {

@@ -1,6 +1,9 @@
 {
 	"compilerOptions": {
+		"declaration": true,
+		"declarationDir": "typings/",
 		"moduleResolution": "node",
+		"outDir": "dist/",
 		"strict": true
 	},
 	"include": [

@@ -47,8 +47,8 @@ importers:
       '@typescript-eslint/eslint-plugin': 3.4.0_92d084c28a92d6e4a285a2a333ea1f59
       '@typescript-eslint/parser': 3.4.0_eslint@6.8.0+typescript@3.9.5
       '@wasm-tool/wasm-pack-plugin': 1.3.1
+      dom-serializer: 1.0.1
       eslint: 6.8.0
-      eslint-config-airbnb-base: 14.2.0_eslint@6.8.0
       jest: 25.5.4
       typescript: 3.9.5
       webpack: 4.43.0_webpack@4.43.0
@@ -63,8 +63,8 @@ importers:
       '@typescript-eslint/eslint-plugin': ^3.4.0
       '@typescript-eslint/parser': ^3.4.0
       '@wasm-tool/wasm-pack-plugin': ^1.2.0
+      dom-serializer: ^1.0.1
       eslint: ^6.8.0
-      eslint-config-airbnb-base: ^14.1.0
       jest: ^25.3.0
       msgpack5: ^4.2.1
       node-fetch: ^2.6.0
@@ -73,7 +73,7 @@ importers:
       uuid: ^7.0.2
       webpack: ^4.42.1
       webpack-cli: ^3.3.11
-      wrtc: ^0.4.4
+      wrtc: ^0.4.5
       ws: ^7.2.3
 lockfileVersion: 5.1
 packages:
@@ -2936,10 +2936,6 @@ packages:
       '0': node >= 0.8
     resolution:
       integrity: sha512-27HBghJxjiZtIk3Ycvn/4kbJk/1uZuJFfuPEns6LaEvpvG1f0hTea8lilrouyo9mVc2GWdcEZ8OLoGmSADlrCw==
-  /confusing-browser-globals/1.0.9:
-    dev: true
-    resolution:
-      integrity: sha512-KbS1Y0jMtyPgIxjO7ZzMAuUpAKMt1SzCL9fsrKsX6b0zJPTaT0SiSPmewwVZg9UAO83HVIlEhZF84LIjZ0lmAw==
   /connect-history-api-fallback/1.6.0:
     dev: true
     engines:
@@ -3559,6 +3555,14 @@ packages:
     dev: false
     resolution:
       integrity: sha512-2/xPb3ORsQ42nHYiSunXkDjPLBaEj/xTwUO4B7XCZQTRk7EBtTOPaygh10YAAh2OI1Qrp6NWfpAhzswj0ydt9g==
+  /dom-serializer/1.0.1:
+    dependencies:
+      domelementtype: 2.0.1
+      domhandler: 3.0.0
+      entities: 2.0.3
+    dev: true
+    resolution:
+      integrity: sha512-1Aj1Qy3YLbdslkI75QEOfdp9TkQ3o8LRISAzxOibjBs/xWwr1WxZFOQphFkZuepHFGo+kB8e5FVJSS0faAJ4Rw==
   /domain-browser/1.2.0:
     engines:
       node: '>=0.4'
@@ -3570,7 +3574,6 @@ packages:
     resolution:
       integrity: sha512-BSKB+TSpMpFI/HOxCNr1O8aMOTZ8hT3pM3GQ0w/mWRmkhEDSFJkkyzz4XQsBV44BChwGkrDfMyjVD0eA2aFV3w==
   /domelementtype/2.0.1:
-    dev: false
     resolution:
       integrity: sha512-5HOHUDsYZWV8FGWN0Njbr/Rn7f/eWSQi1v7+HsUVwXgn8nWWlL64zKDkS0n8ZmQ3mlWOMuXOnR+7Nx/5tMO5AQ==
   /domexception/1.0.1:
@@ -3581,7 +3584,6 @@ packages:
   /domhandler/3.0.0:
     dependencies:
       domelementtype: 2.0.1
-    dev: false
     engines:
       node: '>= 4'
     resolution:
@@ -3682,7 +3684,6 @@ packages:
     resolution:
       integrity: sha512-S7eiFb/erugyd1rLb6mQ3Vuq+EXHv5cpCkNqqIkYkBgN2QdFnyCZzFBleqwGEx4lgNGYij81BWnCrFNK7vxvjQ==
   /entities/2.0.3:
-    dev: false
     resolution:
       integrity: sha512-MyoZ0jgnLvB2X3Lg5HqpFmn1kybDiIfEQmKzTb5apr51Rb+T3KdmMiqa70T+bhGnyv7bQ6WMj2QMHpGMmlrUYQ==
   /errno/0.1.7:
@@ -3768,20 +3769,6 @@ packages:
       source-map: 0.6.1
     resolution:
       integrity: sha512-InuOIiKk8wwuOFg6x9BQXbzjrQhtyXh46K9bqVTPzSo2FnyMBaYGBMC6PhQy7yxxil9vIedFBweQBMK74/7o8A==
-  /eslint-config-airbnb-base/14.2.0_eslint@6.8.0:
-    dependencies:
-      confusing-browser-globals: 1.0.9
-      eslint: 6.8.0
-      object.assign: 4.1.0
-      object.entries: 1.1.2
-    dev: true
-    engines:
-      node: '>= 6'
-    peerDependencies:
-      eslint: ^5.16.0 || ^6.8.0 || ^7.2.0
-      eslint-plugin-import: ^2.21.2
-    resolution:
-      integrity: sha512-Snswd5oC6nJaevs3nZoLSTvGJBvzTfnBqOIArkf3cbyTyq9UD79wOk8s+RiL6bhca0p/eRO6veczhf6A/7Jy8Q==
   /eslint-scope/4.0.3:
     dependencies:
       esrecurse: 4.2.1
@@ -6655,16 +6642,6 @@ packages:
       node: '>= 0.4'
     resolution:
       integrity: sha512-exHJeq6kBKj58mqGyTQ9DFvrZC/eR6OwxzoM9YRoGBqrXYonaFyGiFMuc9VZrXf7DarreEwMpurG3dd+CNyW5w==
-  /object.entries/1.1.2:
-    dependencies:
-      define-properties: 1.1.3
-      es-abstract: 1.17.6
-      has: 1.0.3
-    dev: true
-    engines:
-      node: '>= 0.4'
-    resolution:
-      integrity: sha512-BQdB9qKmb/HyNdMNWVr7O3+z5MUIx3aiegEIJqjMBbBf0YT9RRxTJSim4mzFqtyr7PDAHigq0N9dO0m0tRakQA==
   /object.getownpropertydescriptors/2.1.0:
     dependencies:
       define-properties: 1.1.3
