@@ -157,4 +157,4 @@ jobs:
         uses: actions/upload-artifact@v1
         with:
           name: pwnd_browser
-          with: browser/out
+          path: browser/out
