@@ -1,5 +1,3 @@
-/* eslint-disable class-methods-use-this, no-unused-vars */
-
 export default interface DB<K, V> {
   get(id: K): Promise<V>;
   set(id: K, entry: V): Promise<void>;

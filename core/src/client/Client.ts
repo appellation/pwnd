@@ -3,10 +3,10 @@ import fetch from 'node-fetch';
 
 import { RTCPacket, RTCSync, WebSocketOpCodes, RTCOpCode } from './Op';
 import Secret, { RawSecret } from '../models/Secret';
-import os = require('os');
-import mp5 = require('msgpack5');
-import Peer = require('simple-peer');
-import uuid = require('uuid');
+import * as os from 'os';
+import * as mp5 from 'msgpack5';
+import * as Peer from 'simple-peer';
+import * as uuid from 'uuid';
 import DB from '../models/DB';
 
 const msgpack = mp5();
@@ -114,8 +114,7 @@ export default (WebSocket: any, wrtc?: {}) => class Client extends EventEmitter 
 
         if (msg.type) {
           this._connectionActive = true;
-          clearTimeout(this._connectionTimeout!);
-          this._connectionTimeout = setTimeout(this._disconnect.bind(this), 300000);
+          this._connectionTimeout?.refresh();
 
           let peer = this._slavePeers[msg.id];
           if (!peer) {
@@ -189,6 +188,8 @@ export default (WebSocket: any, wrtc?: {}) => class Client extends EventEmitter 
 
   _close() {
     this._ws.close(1000);
+    clearInterval(this._pingInterval!);
+    clearTimeout(this._connectionTimeout!);
 
     for (const peer of Object.values(this._slavePeers)) {
       peer.destroy();
@@ -202,21 +203,19 @@ export default (WebSocket: any, wrtc?: {}) => class Client extends EventEmitter 
   close() {
     return new Promise((resolve) => {
       if (!this.ready) {
-        this.once('ready', async () => {
+        this.once('ready', () => {
           this._close();
           resolve();
         });
-      }
-
-      if (this._lock) {
-        this.once('unlocked', async () => {
+      } else if (this._lock) {
+        this.once('unlocked', () => {
           this._close();
           resolve();
         });
+      } else {
+        this._close();
+        resolve();
       }
-
-      this._close();
-      resolve();
     });
   }
 

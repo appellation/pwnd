@@ -1,4 +1,4 @@
-import uuid = require('uuid');
+import * as uuid from 'uuid';
 import Field, { FieldType } from './Field';
 import Section, { RawSection } from './Section';
 
@@ -23,21 +23,13 @@ export enum SecretType {
 
 export default class Secret {
   public id: string;
-
   public type: SecretType;
-
   public name: string;
-
   public icon: string | null;
-
   public data: Section[];
-
   public custom: Section[];
-
   public notes: string;
-
   public updated: any;
-
   public created: any;
 
   constructor({

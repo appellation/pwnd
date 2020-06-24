@@ -2,9 +2,11 @@
 	"compilerOptions": {
 		"declaration": true,
 		"declarationDir": "typings/",
+		"module": "CommonJS",
 		"moduleResolution": "node",
 		"outDir": "dist/",
-		"strict": true
+		"strict": true,
+		"target": "ES2019"
 	},
 	"include": [
 		"./src"

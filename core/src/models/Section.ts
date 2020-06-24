@@ -7,7 +7,6 @@ export interface RawSection {
 
 export default class Section {
   public name: string | null;
-
   public fields: Field[];
 
   constructor({ name, fields }: { name: string | null, fields: Field[] }) {

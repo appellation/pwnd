@@ -12,9 +12,7 @@ export interface RawField {
 
 export default class Field {
   public name: string;
-
   public value: string;
-
   public type: FieldType;
 
   constructor({ name, value, type }: RawField) {

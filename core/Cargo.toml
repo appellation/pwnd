@@ -13,7 +13,6 @@ crate-type = ["cdylib", "rlib"]
 aes = "0.3.2"
 arrayref = "0.3.6"
 getrandom = { version = "0.1.14", features = ["wasm-bindgen"] }
-qrcode = { version = "0.11", default-features = false }
 rand = "0.7.3"
 x25519-dalek = "0.6"
 wasm-bindgen = "0.2.58"
