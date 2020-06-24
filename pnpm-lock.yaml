@@ -1,9 +1,9 @@
 importers:
   .:
     devDependencies:
-      dom-serializer: 1.0.1
+      dom-serializer: 0.2.2
     specifiers:
-      dom-serializer: ^1.0.1
+      dom-serializer: 0.2.2
   browser:
     dependencies:
       idb-keyval: 3.2.0
@@ -3554,17 +3554,8 @@ packages:
     dependencies:
       domelementtype: 2.0.1
       entities: 2.0.3
-    dev: false
     resolution:
       integrity: sha512-2/xPb3ORsQ42nHYiSunXkDjPLBaEj/xTwUO4B7XCZQTRk7EBtTOPaygh10YAAh2OI1Qrp6NWfpAhzswj0ydt9g==
-  /dom-serializer/1.0.1:
-    dependencies:
-      domelementtype: 2.0.1
-      domhandler: 3.0.0
-      entities: 2.0.3
-    dev: true
-    resolution:
-      integrity: sha512-1Aj1Qy3YLbdslkI75QEOfdp9TkQ3o8LRISAzxOibjBs/xWwr1WxZFOQphFkZuepHFGo+kB8e5FVJSS0faAJ4Rw==
   /domain-browser/1.2.0:
     engines:
       node: '>=0.4'
@@ -3586,6 +3577,7 @@ packages:
   /domhandler/3.0.0:
     dependencies:
       domelementtype: 2.0.1
+    dev: false
     engines:
       node: '>= 4'
     resolution:
