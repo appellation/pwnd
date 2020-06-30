@@ -1,5 +1,5 @@
 import { Component } from 'react';
-import Secret, { SecretType } from '../types/Secret';
+import { Secret } from 'pwnd-core';
 import SecretListItem from './SecretListItem';
 
 export default class SecretList extends Component<{ secrets: Secret[] }> {

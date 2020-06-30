@@ -1,7 +1,7 @@
 import { get, keys } from 'idb-keyval';
 import Link from 'next/link';
 import { Component } from 'react';
-import Secret from '../types/Secret';
+import { Secret } from 'pwnd-core';
 import SecretDisplay from '../components/SecretDisplay';
 import SecretList from '../components/SecretList';
 
