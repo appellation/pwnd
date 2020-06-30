@@ -4,13 +4,13 @@ import Section, { RawSection } from './Section';
 
 export type RawSecret = BaseSecret<RawSection>;
 
-export interface BaseSecret<Section> {
+export interface BaseSecret<S> {
   id: string;
   type: SecretType;
   name: string;
   icon: string | null;
-  data: Section[];
-  custom: Section[];
+  data: S[];
+  custom: S[];
   notes: string;
   updated: any;
   created: any;
@@ -74,7 +74,7 @@ export default class Secret {
   static createLogin(name: string, username: string, password: string) {
     return new Secret({
       id: uuid.v1(),
-      type: SecretType.EMPTY,
+      type: SecretType.LOGIN,
       name,
       icon: null,
       data: [

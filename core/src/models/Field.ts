@@ -1,3 +1,5 @@
+import * as cryptoRandomString from 'crypto-random-string';
+
 export enum FieldType {
   TEXT,
   HIDDEN,
@@ -19,6 +21,19 @@ export default class Field {
     this.name = name;
     this.value = value;
     this.type = type;
+  }
+
+  public get formAttributes(): Record<string, string> {
+    switch (this.type) {
+      case FieldType.CREDITCARD:
+        return { type: 'tel', autocomplete: 'cc-number' };
+      case FieldType.HIDDEN:
+        return { type: 'text' };
+      case FieldType.TEXT:
+        return { type: 'text' };
+      default:
+        throw new Error('unexpected form field type');
+    }
   }
 
   toJSON() {

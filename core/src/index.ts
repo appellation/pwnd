@@ -1,20 +1,23 @@
 import * as WebSocket from 'ws';
 import * as wrtc from 'wrtc';
 
-import Client from './client/Client';
+import c from './client/Client';
 import DB from './models/DB';
 import Field from './models/Field';
 import Secret from './models/Secret';
 import Section from './models/Section';
 
-import * as wasm from '../pkg';
+export const Client = c(WebSocket, wrtc);
 
-export { DB };
+export * from './client/Client';
+export * from './models/DB';
+export * from './models/Field';
+export * from './models/Secret';
+export * from './models/Section';
 
-export default () => ({
-  Client: Client(WebSocket, wrtc),
+export {
+  DB,
   Field,
   Secret,
   Section,
-  wasm,
-});
+};

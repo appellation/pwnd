@@ -19,8 +19,28 @@ export interface ClientOptions {
   signalingServer: string;
 }
 
+export interface ClientInstance {
+  id: string;
+  name: string;
+  group: string;
+  key: string;
+  db: DB<string, Secret>;
+  signalingServer: string;
+  ready: boolean;
+  close(): Promise<void>;
+  get(id: string): Promise<Secret>;
+  set(secret: Secret): Promise<void>;
+  delete(id: string): Promise<void>;
+  getKeys(): Promise<string[]>;
+  getDeleted(): Promise<string[]>;
+}
+
+export interface InstantiableClient {
+  new(options: ClientOptions): ClientInstance;
+}
+
 // eslint-disable-next-line @typescript-eslint/ban-types
-export default (WebSocket: any, wrtc?: {}) => class Client extends EventEmitter {
+export default (WebSocket: any, wrtc?: {}): InstantiableClient => class Client extends EventEmitter implements ClientInstance {
   public id: string;
   public name: string;
   public group: string;
@@ -186,7 +206,7 @@ export default (WebSocket: any, wrtc?: {}) => class Client extends EventEmitter 
     };
   }
 
-  _close() {
+  private _close() {
     this._ws.close(1000);
     clearInterval(this._pingInterval!);
     clearTimeout(this._connectionTimeout!);
@@ -200,7 +220,7 @@ export default (WebSocket: any, wrtc?: {}) => class Client extends EventEmitter 
     }
   }
 
-  close() {
+  public close(): Promise<void> {
     return new Promise((resolve) => {
       if (!this.ready) {
         this.once('ready', () => {
@@ -219,7 +239,7 @@ export default (WebSocket: any, wrtc?: {}) => class Client extends EventEmitter 
     });
   }
 
-  get(id: string) {
+  public get(id: string) {
     if (!this.ready) {
       throw new Error('Cannot access database before client is ready');
     }
@@ -231,7 +251,7 @@ export default (WebSocket: any, wrtc?: {}) => class Client extends EventEmitter 
     return this.db.get(id);
   }
 
-  async set(secret: Secret) {
+  public async set(secret: Secret): Promise<void> {
     if (!this.ready) {
       throw new Error('Cannot access database before client is ready');
     }
@@ -281,7 +301,7 @@ export default (WebSocket: any, wrtc?: {}) => class Client extends EventEmitter 
     });
   }
 
-  async delete(id: string) {
+  public async delete(id: string): Promise<void> {
     if (!this.ready) {
       throw new Error('Cannot access database before client is ready');
     }
@@ -328,7 +348,7 @@ export default (WebSocket: any, wrtc?: {}) => class Client extends EventEmitter 
     });
   }
 
-  getKeys() {
+  public getKeys() {
     if (!this.ready) {
       throw new Error('Cannot access database before client is ready');
     }
@@ -340,7 +360,7 @@ export default (WebSocket: any, wrtc?: {}) => class Client extends EventEmitter 
     return this.db.getKeys();
   }
 
-  getDeleted() {
+  public getDeleted() {
     if (!this.ready) {
       throw new Error('Cannot access database before client is ready');
     }
@@ -352,7 +372,7 @@ export default (WebSocket: any, wrtc?: {}) => class Client extends EventEmitter 
     return this.db.getDeleted();
   }
 
-  async _connect() {
+  private async _connect() {
     if (this._connectionActive || this._connectionReady) {
       throw new Error('Connection already exists');
     }
@@ -383,7 +403,7 @@ export default (WebSocket: any, wrtc?: {}) => class Client extends EventEmitter 
     }, 60000);
   }
 
-  _disconnect() {
+  private _disconnect() {
     console.log(`[Client: ${this.name} ${this.id}] _disconnect() called`);
 
     clearInterval(this._pingInterval!);
@@ -396,7 +416,7 @@ export default (WebSocket: any, wrtc?: {}) => class Client extends EventEmitter 
     }
   }
 
-  async _sync() {
+  protected async _sync() {
     let deletedArr = await this.db.getDeleted();
     let secretIdArr = await this.db.getKeys();
 
@@ -481,7 +501,7 @@ export default (WebSocket: any, wrtc?: {}) => class Client extends EventEmitter 
     this.emit('sync');
   }
 
-  async _handlePeerData(peer: Peer.Instance, data: Buffer) {
+  private async _handlePeerData(peer: Peer.Instance, data: Buffer) {
     const msg: RTCPacket = msgpack.decode(data);
 
     if (msg.op === RTCOpCode.SYNC_REQUEST) {

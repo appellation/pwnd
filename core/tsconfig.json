@@ -2,6 +2,7 @@
 	"compilerOptions": {
 		"declaration": true,
 		"declarationDir": "typings/",
+		"lib": ["DOM", "ES2019", "ES2015.Iterable"],
 		"module": "CommonJS",
 		"moduleResolution": "node",
 		"outDir": "dist/",

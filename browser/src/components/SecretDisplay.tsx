@@ -1,5 +1,5 @@
 import { Component } from 'react';
-import Secret from '../types/Secret';
+import { Secret } from 'pwnd-core';
 
 export default class SecretDisplay extends Component<{ secret: Secret }> {
 	public render() {

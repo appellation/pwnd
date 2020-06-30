@@ -21,6 +21,8 @@
     "webpack-dev-server": "^3.11.0"
   },
   "dependencies": {
+    "crypto-random-string": "^3.2.0",
+    "formik": "^2.1.4",
     "idb-keyval": "^3.2.0",
     "next": "^9.4.4",
     "pwnd-core": "link:..\\core",

@@ -1,24 +1,17 @@
 import { Component } from 'react';
 import Link from 'next/link';
+import { SecretType } from 'pwnd-core';
+import CreateSecret from 'src/components/CreateSecret';
 
-import pwnd from '../core';
+export default class Generate extends Component<{}, { type: SecretType }> {
+	public state = { type: SecretType.LOGIN };
 
-export default class Generate extends Component {
-	private randomString?: (len: number, charset: string) => string;
-	public state = {
-		password: '',
-	};
-
-	private generatePassword() {
-		this.setState({
-			password: this.randomString(32, 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz1234567890'),
-		});
+	private secretTypeChanged: React.ChangeEventHandler<HTMLSelectElement> = (event) => {
+		this.setState({ type: Number(event.target.value) });
 	}
 
-	public async componentDidMount() {
-		const { wasm: { random_string } } = await pwnd();
-		this.randomString = random_string;
-		this.generatePassword();
+	private getSecretCreator(): JSX.Element {
+		return <CreateSecret type={this.state.type} />;
 	}
 
 	public render() {
@@ -29,10 +22,12 @@ export default class Generate extends Component {
 				</Link>
 				<div className="container mx-auto">
 					<div className="pt-4 mb-4">
-						<h1 className="inline-block text-2xl font-semibold">Add new secret</h1>
+						<h1 className="inline-block text-2xl font-semibold">Add new <select value={this.state.type} onChange={this.secretTypeChanged}>
+							<option value={SecretType.LOGIN}>login</option>
+							<option value={SecretType.EMPTY}>secret</option>
+						</select></h1>
 					</div>
-					<button onClick={this.generatePassword.bind(this)}>Regenerate</button>
-					<input className="font-mono p-2 border rounded focus:shadow-inner" type="text" readOnly value={this.state.password} />
+					{this.getSecretCreator()}
 				</div>
 			</>
 		);
