@@ -7,7 +7,7 @@
   "scripts": {
     "lint": "eslint --ext .ts src/",
     "lint:fix": "eslint --ext .ts --fix src/",
-    "test": "pnpm run lint && tsc && jest",
+    "test": "pnpm run lint && tsc && jest --forceExit",
     "prepare": "rimraf dist typings && tsc",
     "webpack": "webpack"
   },
