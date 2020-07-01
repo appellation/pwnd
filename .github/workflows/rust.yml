@@ -69,12 +69,17 @@ jobs:
         with:
           token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
       - name: Save SSH key on disk
-        run: echo "${{ secrets.DIGITALOCEAN_SSH_KEY }}" > ./ssh
+        run: echo "$SSH_KEY" > ./ssh
+        env:
+          SSH_KEY: ${{ secrets.DIGITALOCEAN_SSH_KEY }}
       - name: Save SSL keys
         run: >
           doctl compute ssh pwnd-signaler --ssh-key-path ./ssh --ssh-command "
           mkdir ./keys &&
-          echo \"${{ secrets.SIGNALER_SSL_PEM }}\" > ./keys/signaler.pleb.xyz.pem &&
-          echo \"${{ secrets.SIGNALER_SSL_KEY }}\" > ./keys/signaler.pleb.xyz.key"
+          echo \"$SSL_PEM\" > ./keys/signaler.pleb.xyz.pem &&
+          echo \"$SSL_KEY\" > ./keys/signaler.pleb.xyz.key"
+        env:
+          SSL_PEM: ${{ secrets.SIGNALER_SSL_PEM }}
+          SSL_KEY: ${{ secrets.SIGNALER_SSL_KEY }}
       - name: Deploy remotely
         run: cat signaler/deploy.sh | doctl compute ssh pwnd-signaler --ssh-key-path ./ssh
