@@ -9,7 +9,7 @@ else
 	git reset --hard origin/master
 fi
 
-mv -f ./keys ./pwnd/signaler/keys
+mv -f ../keys ./signaler/keys
 
 cd signaler
 docker-compose build
