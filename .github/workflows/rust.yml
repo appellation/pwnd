@@ -69,7 +69,9 @@ jobs:
         with:
           token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
       - name: Save SSH key on disk
-        run: echo "$SSH_KEY" > ./ssh
+        run: |
+          echo "$SSH_KEY" > ./ssh
+          rm -f ~/.ssh/known_hosts
         env:
           SSH_KEY: ${{ secrets.DIGITALOCEAN_SSH_KEY }}
       - name: Save SSL keys
