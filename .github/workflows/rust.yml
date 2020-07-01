@@ -76,7 +76,7 @@ jobs:
       - name: Save SSL keys
         run: >
           doctl compute ssh pwnd-signaler --ssh-command "
-          mkdir ./keys &&
+          mkdir -p ./keys &&
           echo \"$SSL_PEM\" > ./keys/signaler.pleb.xyz.pem &&
           echo \"$SSL_KEY\" > ./keys/signaler.pleb.xyz.key"
         env:
