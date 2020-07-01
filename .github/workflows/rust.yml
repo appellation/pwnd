@@ -45,3 +45,17 @@ jobs:
       with:
         name: pwnd_${{ matrix.os }}
         path: build
+
+  signaler-docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Build & push image
+        uses: docker/build-push-action@v1
+        with:
+          repository: ${{ github.repository }}
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+          registry: docker.pkg.github.com
+          tags: latest
+          path: ./signaler
