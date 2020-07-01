@@ -53,7 +53,7 @@ jobs:
       - name: Build & push image
         uses: docker/build-push-action@v1
         with:
-          repository: ${{ github.repository }}
+          repository: ${{ github.repository }}/signaler
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
           registry: docker.pkg.github.com
