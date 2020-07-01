@@ -1,7 +1,7 @@
 #!/bin/bash
 
 if [ ! -d "./pwnd" ]; then
-	git checkout https://github.com/appellation/pwnd.git
+	git clone https://github.com/appellation/pwnd.git
 	cd pwnd
 else
 	cd pwnd
