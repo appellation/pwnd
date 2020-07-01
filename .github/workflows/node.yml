@@ -86,40 +86,10 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v2
 
-      - name: Cache cargo registry
-        uses: actions/cache@v1
-        with:
-          path: ~/.cargo/registry
-          key: node-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
-      - name: Cache cargo index
-        uses: actions/cache@v1
-        with:
-          path: ~/.cargo/git
-          key: node-cargo-index-${{ hashFiles('**/Cargo.lock') }}
-      - name: Cache cargo build
-        uses: actions/cache@v1
-        with:
-          path: target
-          key: node-cargo-build-target-${{ hashFiles('**/Cargo.lock') }}
-
-      - name: Install latest stable
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          default: true
-
       - name: Install Node
         uses: actions/setup-node@v1
         with:
           node-version: '12.x'
-
-      - name: Install wasm-pack
-        uses: jetli/wasm-pack-action@v0.3.0
-        with:
-          version: 'latest'
-
-      - name: Ensure wasm32 target
-        run: rustup target add wasm32-unknown-unknown
 
       - name: Install pnpm
         run: npm install -g pnpm
@@ -132,18 +102,6 @@ jobs:
 
       - name: Run build steps
         run: pnpm recursive run build
-
-      - name: Upload Node artifacts
-        uses: actions/upload-artifact@v1
-        with:
-          name: pwnd_core_wasm_node
-          path: core/pkg
-
-      - name: Upload WASM artifacts
-        uses: actions/upload-artifact@v1
-        with:
-          name: pwnd_core_wasm_browser
-          path: core/pkg-browser
 
       - name: Upload browser artifacts
         uses: actions/upload-artifact@v1
