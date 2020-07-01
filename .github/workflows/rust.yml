@@ -68,15 +68,14 @@ jobs:
         uses: digitalocean/action-doctl@v2
         with:
           token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
-      - name: Save SSH key on disk
-        run: |
-          echo "$SSH_KEY" > ./ssh
-          rm -f ~/.ssh/known_hosts
-        env:
-          SSH_KEY: ${{ secrets.DIGITALOCEAN_SSH_KEY }}
+      - name: Install SSH key
+        uses: shimataro/ssh-key-action@v2
+        with:
+          key: ${{ secrets.DIGITALOCEAN_SSH_KEY }}
+          known_hosts: ${{ secrets.DIGITALOCEAN_SSH_KNOWN_HOSTS }}
       - name: Save SSL keys
         run: >
-          doctl compute ssh pwnd-signaler --ssh-key-path ./ssh --ssh-command "
+          doctl compute ssh pwnd-signaler --ssh-command "
           mkdir ./keys &&
           echo \"$SSL_PEM\" > ./keys/signaler.pleb.xyz.pem &&
           echo \"$SSL_KEY\" > ./keys/signaler.pleb.xyz.key"
@@ -84,4 +83,4 @@ jobs:
           SSL_PEM: ${{ secrets.SIGNALER_SSL_PEM }}
           SSL_KEY: ${{ secrets.SIGNALER_SSL_KEY }}
       - name: Deploy remotely
-        run: cat signaler/deploy.sh | doctl compute ssh pwnd-signaler --ssh-key-path ./ssh
+        run: cat signaler/deploy.sh | doctl compute ssh pwnd-signaler
