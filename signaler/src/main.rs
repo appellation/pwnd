@@ -1,9 +1,13 @@
+#![feature(async_closure)]
+
 use bytes;
-use dashmap::DashMap;
 use futures::StreamExt;
 use rmp_serde;
-use std::sync::Arc;
-use tokio::sync::mpsc;
+use std::{
+	collections::HashMap,
+	sync::Arc,
+};
+use tokio::sync::{mpsc, RwLock};
 use warp::{
 	Filter,
 	http::{
@@ -17,14 +21,8 @@ use warp::{
 	},
 };
 
-async fn ws_handler(ws: WebSocket, user_id: String, connection_id: String, users: Users) {
-	if !users.contains_key(&user_id) {
-		let conns: UserConnections = DashMap::new();
-		users.insert(user_id.clone(), conns);
-	}
-
-	let conns = users.get(&user_id).unwrap();
-	if conns.contains_key(&connection_id) {
+async fn ws_connection_handler(ws: WebSocket, connection_id: String, conns: UserConnections) {
+	if conns.read().await.contains_key(&connection_id) {
 		let _ = ws.close().await;
 		return;
 	}
@@ -34,72 +32,80 @@ async fn ws_handler(ws: WebSocket, user_id: String, connection_id: String, users
 	let (tx, rx) = mpsc::unbounded_channel();
 	tokio::task::spawn(rx.forward(user_ws_tx));
 
-	conns.insert(connection_id.clone(), tx);
+	conns.write().await.insert(connection_id.clone(), tx);
 
 	while let Some(Ok(msg)) = user_ws_rx.next().await {
 		if msg.is_close() {
 			break;
 		}
 
-		for conn in conns.value().iter().filter(|r#ref| *r#ref.key() != connection_id) {
+		for (_, conn) in conns.read().await.iter().filter(|(k, _)| *k != &connection_id) {
 			let _ = conn.send(Ok(msg.clone()));
 		}
 	}
 
-	conns.remove(&connection_id);
+	conns.write().await.remove(&connection_id);
 }
 
-type UserConnections = DashMap<String, mpsc::UnboundedSender<Result<warp::ws::Message, warp::Error>>>;
-type Users = Arc<DashMap<String, UserConnections>>;
+async fn ws_handler(user_id: String, connection_id: String, ws: Ws, users: Users) -> Result<impl warp::Reply, std::convert::Infallible> {
+	let conns = Arc::clone(users.write().await.entry(user_id).or_default());
+	Ok(ws.on_upgrade(move |socket| ws_connection_handler(socket, connection_id, conns)))
+}
+
+async fn send_message_handler(user_id: String, connection_id: String, body: bytes::Bytes, users: Users) -> Result<impl warp::Reply, std::convert::Infallible> {
+	match users.read().await.get(&user_id) {
+		Some(connections) => connections
+			.read().await
+			.get(&connection_id)
+			.map_or(Ok(StatusCode::NOT_FOUND), |conn| match conn.send(Ok(Message::binary(body.to_vec()))) {
+				Ok(_) => Ok(StatusCode::OK),
+				Err(_) => Ok(StatusCode::INTERNAL_SERVER_ERROR),
+			}),
+		None => Ok(StatusCode::NOT_FOUND),
+	}
+}
+
+async fn get_clients_handler(user_id: String, users: Users) -> Result<impl warp::Reply, std::convert::Infallible> {
+	match users.read().await.get(&user_id) {
+		None => Ok(Response::builder().status(StatusCode::NOT_FOUND).body(vec![])),
+		Some(connections) => {
+			let clients: Vec<String> = connections.read().await.iter().map(|(key, _)| key.to_string()).collect();
+			Ok(Response::builder()
+				.header("Content-Type", "application/msgpack")
+				.body(rmp_serde::to_vec(&clients).unwrap()))
+		}
+	}
+}
+
+type UserConnections = Arc<RwLock<HashMap<String, mpsc::UnboundedSender<Result<warp::ws::Message, warp::Error>>>>>;
+type Users = Arc<RwLock<HashMap<String, UserConnections>>>;
 
 #[tokio::main]
 async fn main() {
-	let users = DashMap::new();
+	let users = RwLock::new(HashMap::new());
 	let users: Users = Arc::new(users);
-	let users = warp::any().map(move || users.clone());
+	let users = warp::any().map(move || Arc::clone(&users));
 
 	let ws = warp::path!(String / String)
 		.and(warp::ws())
 		.and(users.clone())
-		.map(|user_id: String, connection_id: String, ws: Ws, users: Users| {
-			ws.on_upgrade(move |socket| ws_handler(socket, user_id, connection_id, users))
-		});
+		.and_then(ws_handler);
 
 	let post_client = warp::path!(String / String)
 		.and(warp::post())
 		.and(warp::body::bytes())
 		.and(users.clone())
-		.map(|user_id: String, connection_id: String, body: bytes::Bytes, users: Users| {
-			users
-				.get(&user_id)
-				.as_ref()
-				.and_then(|connections| connections.value().get(&connection_id))
-				.map_or(StatusCode::NOT_FOUND, |conn| {
-					match conn.send(Ok(Message::binary(body.to_vec()))) {
-						Ok(_) => StatusCode::OK,
-						Err(_) => StatusCode::INTERNAL_SERVER_ERROR,
-					}
-				})
-		});
+		.and_then(send_message_handler);
 
 	let get_clients = warp::path::param::<String>()
 		.and(warp::get())
 		.and(users)
-		.map(|user_id: String, users: Users| {
-			match users.get(&user_id) {
-				None => Response::builder().status(StatusCode::NOT_FOUND).body(vec![]),
-				Some(connections) => {
-					let clients: Vec<String> = connections.value().into_iter().map(|entry| entry.key().to_string()).collect();
-					Response::builder()
-						.header("Content-Type", "application/msgpack")
-						.body(rmp_serde::to_vec(&clients).unwrap())
-				}
-			}
-		});
+		.and_then(get_clients_handler);
 
 	let cors = warp::cors()
 		.allow_any_origin()
-		.allow_methods(vec!["GET", "POST"]);
+		.allow_methods(vec!["GET", "POST"])
+		.build();
 
 	let routes = ws
 		.or(post_client)
