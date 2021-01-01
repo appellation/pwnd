@@ -7,10 +7,11 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-bytes = "0.5.4"
 dashmap = "3.7.0"
+pretty_env_logger = "0.4.0"
 futures = { version = "0.3", default-features = false, features = ["alloc"] }
+log = "0.4.11"
 rmp-serde = "0.14.3"
 serde = { version = "1.0", features = ["derive"] }
-tokio = { version = "0.2", features = ["macros", "sync", "time"] }
-warp = "0.2.2"
+tokio = { version = "1.0.1", features = ["macros", "sync", "time", "rt-multi-thread"] }
+warp = { git = "https://github.com/aknuds1/warp", rev = "2f2206ccadbfafcd887862ee5b8f3ba5232b5b7b" }

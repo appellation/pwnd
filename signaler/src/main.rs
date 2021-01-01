@@ -1,15 +1,15 @@
-use bytes;
 use dashmap::DashMap;
-use futures::StreamExt;
+use futures::{StreamExt, SinkExt};
 use rmp_serde;
 use std::sync::Arc;
-use tokio::sync::mpsc;
+use tokio::{sync::broadcast, task};
 use warp::{
 	Filter,
 	http::{
 		Response,
 		status::StatusCode,
 	},
+	hyper::body::Bytes,
 	ws::{
 		Message,
 		WebSocket,
@@ -18,44 +18,39 @@ use warp::{
 };
 
 async fn ws_handler(ws: WebSocket, user_id: String, connection_id: String, users: Users) {
-	if !users.contains_key(&user_id) {
-		let conns: UserConnections = DashMap::new();
-		users.insert(user_id.clone(), conns);
-	}
+	let sender = {
+		let conns = users.entry(user_id.clone()).or_default();
+		let sender = conns.entry(connection_id.clone()).or_insert_with(|| broadcast::channel(32).0);
+		sender.clone()
+	};
 
-	let conns = users.get(&user_id).unwrap();
-	if conns.contains_key(&connection_id) {
-		let _ = ws.close().await;
-		return;
-	}
+	let mut rx = sender.subscribe();
+	let (mut ws_tx, mut ws_rx) = ws.split();
 
-	let (user_ws_tx, mut user_ws_rx) = ws.split();
+	task::spawn(async move {
+		while let Ok(msg) = rx.recv().await {
+			let _ = ws_tx.send(msg).await;
+		}
+	});
 
-	let (tx, rx) = mpsc::unbounded_channel();
-	tokio::task::spawn(rx.forward(user_ws_tx));
-
-	conns.insert(connection_id.clone(), tx);
-
-	while let Some(Ok(msg)) = user_ws_rx.next().await {
+	while let Some(Ok(msg)) = ws_rx.next().await {
 		if msg.is_close() {
 			break;
 		}
 
-		for conn in conns.value().iter().filter(|r#ref| *r#ref.key() != connection_id) {
-			let _ = conn.send(Ok(msg.clone()));
-		}
+		log::info!(target: "signaler", "{}/{} {:?}", user_id, connection_id, msg);
+		let _ = sender.send(msg);
 	}
-
-	conns.remove(&connection_id);
 }
 
-type UserConnections = DashMap<String, mpsc::UnboundedSender<Result<warp::ws::Message, warp::Error>>>;
+type UserConnections = DashMap<String, broadcast::Sender<Message>>;
 type Users = Arc<DashMap<String, UserConnections>>;
 
 #[tokio::main]
 async fn main() {
-	let users = DashMap::new();
-	let users: Users = Arc::new(users);
+	pretty_env_logger::init();
+
+	let users = Users::default();
 	let users = warp::any().map(move || users.clone());
 
 	let ws = warp::path!(String / String)
@@ -69,13 +64,13 @@ async fn main() {
 		.and(warp::post())
 		.and(warp::body::bytes())
 		.and(users.clone())
-		.map(|user_id: String, connection_id: String, body: bytes::Bytes, users: Users| {
+		.map(|user_id: String, connection_id: String, body: Bytes, users: Users| {
 			users
 				.get(&user_id)
 				.as_ref()
 				.and_then(|connections| connections.value().get(&connection_id))
 				.map_or(StatusCode::NOT_FOUND, |conn| {
-					match conn.send(Ok(Message::binary(body.to_vec()))) {
+					match conn.send(Message::binary(body.to_vec())) {
 						Ok(_) => StatusCode::OK,
 						Err(_) => StatusCode::INTERNAL_SERVER_ERROR,
 					}
@@ -104,6 +99,7 @@ async fn main() {
 	let routes = ws
 		.or(post_client)
 		.or(get_clients)
+		.with(warp::log("signaler"))
 		.with(cors);
 
 	warp::serve(routes)
