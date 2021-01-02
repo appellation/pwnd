@@ -37,3 +37,4 @@ jobs:
           registry: docker.pkg.github.com
           auto_tag: true
           path: ./signaler
+          file: ./signaler/Dockerfile
