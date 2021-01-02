@@ -1,7 +1,1 @@
 target/
-dist/
-pkg/
-pkg-browser/
-*.pk
-*.sqlite3
-node_modules/
