@@ -1,4 +1,4 @@
-use libpwnd::{
+use pwnd_core::{
 	models::packet::{rtc, ws},
 	network::Network,
 };

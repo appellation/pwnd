@@ -4,83 +4,36 @@ on: [push, pull_request]
 
 jobs:
   build:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
-    - name: Cache cargo registry
-      uses: actions/cache@v1
-      with:
-        path: ~/.cargo/registry
-        key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
-    - name: Cache cargo index
-      uses: actions/cache@v1
-      with:
-        path: ~/.cargo/git
-        key: ${{ runner.os }}-cargo-index-${{ hashFiles('**/Cargo.lock') }}
-    - name: Cache cargo build
-      uses: actions/cache@v1
-      with:
-        path: target
-        key: ${{ runner.os }}-cargo-build-target-${{ hashFiles('**/Cargo.lock') }}
-    - name: Install latest nightly
+    - name: Install Rust stable
       uses: actions-rs/toolchain@v1
       with:
-        toolchain: nightly
+        toolchain: stable
         default: true
     - name: Build
       uses: actions-rs/cargo@v1
       with:
         command: build
-        args: --release -Z unstable-options --out-dir build --workspace
+        args: --release --workspace
     - name: Test
       uses: actions-rs/cargo@v1
       with:
         command: test
         args: --release --workspace
-    - name: Upload artifacts
-      uses: actions/upload-artifact@v1
-      with:
-        name: pwnd_${{ matrix.os }}
-        path: build
 
   docker-signaler:
+    name: Build signaler (Docker)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
       - name: Build & push image
-        uses: docker/build-push-action@v1
+        uses: jerray/publish-docker-action@v1.0.5
         with:
           repository: ${{ github.repository }}/signaler
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
           registry: docker.pkg.github.com
-          tags: latest
+          auto_tag: true
           path: ./signaler
-
-  deploy-signaler:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - name: Install doctl
-        uses: digitalocean/action-doctl@v2
-        with:
-          token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
-      - name: Install SSH key
-        uses: shimataro/ssh-key-action@v2
-        with:
-          key: ${{ secrets.DIGITALOCEAN_SSH_KEY }}
-          known_hosts: ${{ secrets.DIGITALOCEAN_SSH_KNOWN_HOSTS }}
-      - name: Save SSL keys
-        run: >
-          doctl compute ssh pwnd-signaler --ssh-command "
-          mkdir -p ./keys &&
-          echo \"$SSL_PEM\" > ./keys/signaler.pleb.xyz.pem &&
-          echo \"$SSL_KEY\" > ./keys/signaler.pleb.xyz.key"
-        env:
-          SSL_PEM: ${{ secrets.SIGNALER_SSL_PEM }}
-          SSL_KEY: ${{ secrets.SIGNALER_SSL_KEY }}
-      - name: Deploy remotely
-        run: cat signaler/deploy.sh | doctl compute ssh pwnd-signaler
