@@ -11,7 +11,7 @@ pub mod ws {
 
 	#[derive(Debug, Serialize, Deserialize)]
 	pub enum Op {
-		Announce(String),
+		Announce,
 		SessionDescription(SessionDescription),
 		IceCandidate(IceCandidate),
 	}

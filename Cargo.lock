@@ -55,6 +55,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "async-trait"
+version = "0.1.42"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8d3a45e77e34375a7923b1e8febb049bb011f064714a8e17a1a616fef01da13d"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "async-tungstenite"
 version = "0.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1209,20 +1220,21 @@ name = "pwnd_core"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "async-tungstenite",
+ "async-trait",
  "bincode",
+ "bytes 1.0.0",
  "chrono",
  "dashmap 4.0.1",
  "datachannel",
  "futures",
  "log",
  "pretty_env_logger",
+ "pwnd_signaler",
  "reqwest",
  "serde",
  "thiserror",
  "tokio",
  "tokio-stream",
- "tungstenite 0.11.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "uuid",
 ]
 
@@ -1230,14 +1242,14 @@ dependencies = [
 name = "pwnd_signaler"
 version = "0.1.0"
 dependencies = [
- "dashmap 3.11.10",
+ "async-tungstenite",
+ "bytes 1.0.0",
  "futures",
  "log",
- "pretty_env_logger",
- "rmp-serde",
- "serde",
+ "reqwest",
+ "thiserror",
  "tokio",
- "warp",
+ "tungstenite 0.11.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -1683,6 +1695,20 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "16f1d0fef1604ba8f7a073c7e701f213e056707210e9020af4528e0101ce11a6"
 dependencies = [
  "libc",
+]
+
+[[package]]
+name = "signaler"
+version = "0.1.0"
+dependencies = [
+ "dashmap 3.11.10",
+ "futures",
+ "log",
+ "pretty_env_logger",
+ "rmp-serde",
+ "serde",
+ "tokio",
+ "warp",
 ]
 
 [[package]]

@@ -2,4 +2,5 @@
 members = [
 	"core",
 	"signaler",
+	"signaler/lib",
 ]

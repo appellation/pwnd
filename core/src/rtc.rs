@@ -1,14 +1,23 @@
-use bincode::deserialize;
-use datachannel::{ConnectionState, DataChannel, GatheringState, IceCandidate, PeerConnection, RtcDataChannel, SessionDescription};
-use tokio::sync::{broadcast, mpsc::Sender};
+use bincode::{deserialize, serialize};
+use datachannel::{
+	ConnectionState, DataChannel, GatheringState, IceCandidate, MakeDataChannel, PeerConnection,
+	RtcDataChannel, SessionDescription,
+};
+use tokio::sync::{broadcast, mpsc};
 use uuid::Uuid;
 
 use crate::models::packet::{rtc, ws};
 
-#[derive(Debug)]
-pub struct Response {
-	pub target_id: Uuid,
-	pub packet: ws::Packet,
+pub type ChanReady = (Uuid, Box<RtcDataChannel<Chan>>);
+
+pub struct ChanFactory(pub broadcast::Sender<rtc::Packet>);
+
+impl MakeDataChannel<Chan> for ChanFactory {
+	fn make(&mut self) -> Chan {
+		Chan {
+			output: self.0.clone(),
+		}
+	}
 }
 
 #[derive(Debug, Clone)]
@@ -19,7 +28,7 @@ pub struct Chan {
 impl DataChannel for Chan {
 	fn on_message(&mut self, msg: &[u8]) {
 		log::debug!("<- {:?}", msg);
-		deserialize(msg).map(|pkt| self.output.send(pkt));
+		let _ = deserialize(msg).map(|pkt| self.output.send(pkt));
 	}
 
 	fn on_available(&mut self) {
@@ -39,7 +48,10 @@ impl DataChannel for Chan {
 	}
 
 	fn on_open(&mut self) {
-		log::info!("opened");
+		// self.ready
+		// 	.as_ref()
+		// 	.and_then(|weak_ready| weak_ready.upgrade())
+		// 	.map(|ready| ready.notify());
 	}
 }
 
@@ -47,7 +59,16 @@ impl DataChannel for Chan {
 pub struct Conn {
 	pub local_id: Uuid,
 	pub remote_id: Uuid,
-	pub signaling: Sender<Response>,
+	pub signaler: pwnd_signaler::Group,
+	pub new: mpsc::Sender<ChanReady>,
+}
+
+impl Conn {
+	fn send(&self, data: &ws::Packet) {
+		let _ = self
+			.signaler
+			.spawn_send(self.remote_id, serialize(data).unwrap());
+	}
 }
 
 impl PeerConnection for Conn {
@@ -56,24 +77,18 @@ impl PeerConnection for Conn {
 	fn on_description(&mut self, sess_desc: SessionDescription) {
 		log::debug!("({}) signaling {:?}", self.local_id, sess_desc);
 
-		self.signaling.blocking_send(Response {
-			target_id: self.remote_id,
-			packet: ws::Packet {
-				client_id: self.local_id,
-				op: ws::Op::SessionDescription(sess_desc),
-			},
+		self.send(&ws::Packet {
+			client_id: self.local_id,
+			op: ws::Op::SessionDescription(sess_desc),
 		});
 	}
 
 	fn on_candidate(&mut self, cand: IceCandidate) {
 		log::debug!("({}) signaling {:?}", self.local_id, cand);
 
-		self.signaling.blocking_send(Response {
-			target_id: self.remote_id,
-			packet: ws::Packet {
-				client_id: self.local_id,
-				op: ws::Op::IceCandidate(cand),
-			},
+		self.send(&ws::Packet {
+			client_id: self.local_id,
+			op: ws::Op::IceCandidate(cand),
 		});
 	}
 
@@ -82,7 +97,7 @@ impl PeerConnection for Conn {
 	}
 
 	fn on_data_channel(&mut self, data_channel: Box<RtcDataChannel<Self::DC>>) {
-		Box::leak(data_channel); // TODO: do something with this
+		let _ = self.new.blocking_send((self.remote_id, data_channel));
 		log::debug!("({}) data channel opened", self.local_id);
 	}
 

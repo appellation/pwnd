@@ -1,7 +1,4 @@
-use pwnd_core::{
-	models::packet::{rtc, ws},
-	network::Network,
-};
+use pwnd_core::{models::packet::rtc, network::Network};
 use tokio::{spawn, sync::broadcast};
 use uuid::Uuid;
 
@@ -21,9 +18,7 @@ async fn main() {
 	let ah = spawn(handle_packet(a.subscribe()));
 	let bh = spawn(handle_packet(b.subscribe()));
 
-	a.send_signal(ws::Op::Announce("hello".to_owned()))
-		.await
-		.expect("unable to send announcement");
+	a.announce().await.expect("unable to send announcement");
 
 	// a.send_peer(b.id, rtc::Packet::Ping);
 
