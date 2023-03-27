@@ -20,7 +20,7 @@ pwnd_signaler = { path = "../signaler/lib" }
 reqwest = { git = "https://github.com/seanmonstar/reqwest.git" }
 serde = { version = "1.0", features = ["derive"] }
 thiserror = "1.0"
-tokio = { version = "1.0", features = ["full", "rt"] }
+tokio = { version = "1.16", features = ["full", "rt"] }
 tokio-stream = "0.1"
 uuid = { version = "0.8", features = ["serde", "v4"] }
 

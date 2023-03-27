@@ -13,5 +13,5 @@ futures = { version = "0.3", default-features = false, features = ["alloc"] }
 log = "0.4.11"
 rmp-serde = "0.14.3"
 serde = { version = "1.0", features = ["derive"] }
-tokio = { version = "1.0.1", features = ["macros", "sync", "time", "rt-multi-thread"] }
+tokio = { version = "1.16.1", features = ["macros", "sync", "time", "rt-multi-thread"] }
 warp = { git = "https://github.com/aknuds1/warp", rev = "2f2206ccadbfafcd887862ee5b8f3ba5232b5b7b" }
